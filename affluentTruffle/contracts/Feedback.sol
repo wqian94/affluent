@@ -1,20 +1,69 @@
 pragma solidity ^0.4.21;
 
 contract Feedback {
-  mapping (address => bool) private userFeedback;
-  address public owner;
+  address public instructor;
+
+  struct FeedbackQ {
+    bytes32[1024] question;
+    mapping (bool => uint) voteCount;
+    uint courseID;
+  }
+
+  FeedbackQ[] private daily_questions; 
+  address[] private enrolled_students;
 
   event Propagate(address indexed _from, bool _value);
 
-  function addFeedback(bool feedback) public returns (bool) {
-    userFeedback[msg.sender] = feedback;
-    owner = msg.sender;
-    emit Propagate(msg.sender, feedback);
-    return userFeedback[msg.sender];
+  function newEnrollment(address student_addr) public returns (uint student_num) {
+    return enrolled_students.push(student_addr)-1;
+  }
+  
+  function newQuestion(bytes32[] question, uint courseID) public
+                          returns(uint rownumber) {
+    FeedbackQ newQuestion;
+    newQuestion.question = question;
+    newQuestion.courseID = courseID;
+    return daily_questions.push(newQuestion)-1;
   }
 
-  function viewFeedback() public view returns (bool) {
-    return userFeedback[msg.sender];
+  function questionsCount() public constant returns(uint questionCount) {
+    return daily_questions.length;
   }
 
+  function studentsCount() public constant returns(uint studentCount) {
+    return enrolled_students.length;
+  }
+
+  function giveFeedback(bool feedback, bytes32[1024] question) public {
+    uint studcount = studentsCount();
+    uint j = 0; 
+    bool inclass = false;
+    for (j; j < studcount; j++ ) {
+      if (enrolled_students[j] == msg.sender) {
+        inclass = true;
+        break;
+      }
+    }
+
+    require(inclass);
+
+    uint count = questionsCount();
+    uint i = 0;
+
+    for (i; i < count; i++) {
+      if (daily_questions[i].question == question) {
+        daily_questions[i].voteCount[feedback]++;
+      }
+    }
+  }
+
+  function viewFeedback(bool responsetype, bytes32[1024] question) public 
+                            view returns (uint result) {
+    uint count = questionsCount();
+    uint i = 0;
+    for (i; i < count; i++) {
+      if (daily_questions[i].question == question) {
+        return daily_questions[i].voteCount[feedback];
+      }
+  }
 }
