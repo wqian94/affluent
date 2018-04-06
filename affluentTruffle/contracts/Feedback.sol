@@ -1,16 +1,19 @@
-pragma solidity ^0.4.17;
+pragma solidity ^0.4.21;
 
 contract Feedback {
-  mapping (address => string) private userFeedback;
+  mapping (address => bool) private userFeedback;
   address public owner;
 
-  function addFeedback(string feedback) public returns (string) {
+  event Propagate(address indexed _from, bool _value);
+
+  function addFeedback(bool feedback) public returns (bool) {
     userFeedback[msg.sender] = feedback;
-    return userFeedback[msg.sender];
     owner = msg.sender;
+    emit Propagate(msg.sender, feedback);
+    return userFeedback[msg.sender];
   }
 
-  function viewFeedback() constant returns (string) {
+  function viewFeedback() public view returns (bool) {
     return userFeedback[msg.sender];
   }
 
