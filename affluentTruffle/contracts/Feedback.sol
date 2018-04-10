@@ -55,14 +55,7 @@ contract Feedback {
 
     require(inclass);
 
-    uint count = questionsCount();
-    uint i = 0;
-
-    for (i; i < count; i++) {
-      if (daily_questions[i].questionID == questionID) {
-        daily_questions[i].voteCount[feedback]++;
-      }
-    }
+    daily_questions[questionID].voteCount[feedback]++;
   }
 
   function viewFeedback(uint questionID, bool responsetype) public
