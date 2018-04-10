@@ -6,7 +6,7 @@ contract Feedback {
   struct FeedbackQ {
     uint questionID;
     uint courseID;
-    bytes question;
+    string question;
     mapping (bool => uint) voteCount;
   }
 
@@ -19,7 +19,7 @@ contract Feedback {
     return enrolled_students.push(student_addr)-1;
   }
  
-  function newQuestion(uint questionID, uint courseID, bytes text) public {
+  function newQuestion(uint questionID, uint courseID, string text) public {
     uint rownumber = daily_questions.length;
     daily_questions.length++;
     FeedbackQ storage question = daily_questions[rownumber];
@@ -28,6 +28,10 @@ contract Feedback {
     question.question = text;
     question.voteCount[false] = 0;
     question.voteCount[true] = 0;
+  }
+
+  function getQuestion(uint questionID) public constant returns(string question) {
+    return daily_questions[questionID].question;
   }
 
   function questionsCount() public constant returns(uint questionCount) {
