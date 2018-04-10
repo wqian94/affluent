@@ -13,7 +13,7 @@ contract Feedback {
   FeedbackQ[] private daily_questions;
   address[] private enrolled_students;
 
-  //event Propagate(address indexed _from, bool _value);
+  event Question(string text);
 
   function newEnrollment(address student_addr) public returns (uint student_num) {
     return enrolled_students.push(student_addr)-1;
@@ -28,6 +28,12 @@ contract Feedback {
     question.question = text;
     question.voteCount[false] = 0;
     question.voteCount[true] = 0;
+  }
+
+  function popQuestion(uint questionID) public {
+    if (questionID < questionsCount()) {
+      emit Question(daily_questions[questionID].question);
+    }
   }
 
   function getQuestion(uint questionID) public constant returns(string question) {
@@ -60,12 +66,6 @@ contract Feedback {
 
   function viewFeedback(uint questionID, bool responsetype) public
                             view returns (uint result) {
-    uint count = questionsCount();
-    uint i = 0;
-    for (i; i < count; i++) {
-      if (daily_questions[i].questionID == questionID) {
-        return daily_questions[i].voteCount[responsetype];
-      }
-    }
+    return daily_questions[questionID].voteCount[responsetype];
   }
 }
