@@ -1,6 +1,7 @@
 // Import libraries we need.
 import { default as Web3} from 'web3';
 import { default as contract } from 'truffle-contract'
+const os = require('os');
 
 // Import our contract artifacts and turn them into usable abstractions.
 const feedback_artifacts = require('../../build/contracts/Feedback.json');
@@ -155,7 +156,9 @@ window.addEventListener('load', function() {
     window.web3 = new Web3(new Web3.providers.HttpProvider("http://127.0.0.1:9545"));
   }
   */
-  window.web3 = new Web3(new Web3.providers.HttpProvider("http://127.0.0.1:8545"));
+
+  window.web3 = new Web3(new Web3.providers.HttpProvider(
+    "http://" + location.hostname + ":8545"));
 
   App.start();
 });
