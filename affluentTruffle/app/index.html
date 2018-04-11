@@ -69,7 +69,7 @@
             Question: <input id="addQuestionModalText" />
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-primary" data-dismiss="modal" onclick="const input = document.getElementById('addQuestionModalText'); window.App.addQuestion(input.textContent); input.textContent = '';">
+            <button type="button" class="btn btn-primary" data-dismiss="modal" onclick="const input = document.getElementById('addQuestionModalText'); window.App.addQuestion(input.value); input.value = '';">
               Submit
             </button>
           </div>

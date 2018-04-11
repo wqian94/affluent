@@ -113,13 +113,11 @@ window.App = {
 
     function show_question(qn) {
       ele.textContent = "Waiting for more questions...";
+      instance.popQuestion(qn, {from: account, gas: gas});
 
-      (async () => {
-        if (qn < (await instance.questionsCount()).toNumber()) {
-          console.log(qn);
-          let tmp = await instance.getQuestion(qn);
-          console.log(tmp);
-          ele.textContent = tmp;
+      instance.Question().watch(async (error, result) => {
+        if (!error) {
+          ele.textContent = result.args.text;
           var dragend = function(event) {
             var direction = Math.sign(event.clientX - originX);
             if (0 == direction) {
@@ -134,7 +132,7 @@ window.App = {
           };
           ele.addEventListener("dragend", dragend);
         }
-      })();
+      });
     }
     instance.newEnrollment(account, {from: account, gas: gas});
     show_question(0);
