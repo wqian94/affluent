@@ -99,11 +99,29 @@ window.App = {
         `Did you just use your computer?`,
     ];
 
-    var ele = document.getElementById("myElement");
+    const ele = document.getElementById("myElement");
     var originX = null;
+    var qnum = null;
 
     ele.addEventListener("drag", function(event) {
       var direction = Math.sign(event.clientX - originX);
+    });
+
+    ele.addEventListener("dragend", function(event) {
+      if (null == qnum) {
+        return;
+      }
+
+      var direction = Math.sign(event.clientX - originX);
+      if (0 == direction) {
+        return;
+      }
+
+      // Successfully registered response
+      var response = (0 < direction ? true : false);
+      instance.giveFeedback(response, qnum, {from: account, gas: gas});
+      show_question(qnum + 1);
+      qnum = null;
     });
 
     ele.addEventListener("dragstart", function(event) {
@@ -113,24 +131,19 @@ window.App = {
 
     function show_question(qn) {
       ele.textContent = "Waiting for more questions...";
-      instance.popQuestion(qn, {from: account, gas: gas});
+      async function pop() {
+        if (qn < (await instance.questionsCount())) {
+          instance.popQuestion(qn, {from: account, gas: gas});
+        } else {
+          setTimeout(pop, 1000);
+        }
+      }
+      pop();
 
       instance.Question().watch(async (error, result) => {
         if (!error) {
           ele.textContent = result.args.text;
-          var dragend = function(event) {
-            var direction = Math.sign(event.clientX - originX);
-            if (0 == direction) {
-              return;
-            }
-
-            // Successfully registered response
-            var response = (0 < direction ? true : false);
-            instance.giveFeedback(response, qn, {from: account, gas: gas});
-            ele.removeEventListener("dragend", dragend);
-            show_question(qn + 1);
-          };
-          ele.addEventListener("dragend", dragend);
+          qnum = qn;
         }
       });
     }
