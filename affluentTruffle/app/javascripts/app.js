@@ -89,16 +89,6 @@ window.App = {
   runApp: async () => {
     const instance = await Feedback.deployed();
 
-    const class_name = "CS 144r/244r";
-
-    var questions = [
-        `Was the lecture entertaining?`,
-        `Was the lecture valuable?`,
-        `Was the lecturer engaging?`,
-        `Was the pace too slow?`,
-        `Did you just use your computer?`,
-    ];
-
     const ele = document.getElementById("myElement");
     var originX = null;
     var qnum = null;
