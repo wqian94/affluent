@@ -116,7 +116,10 @@ window.App = {
 
       (async () => {
         if (qn < (await instance.questionsCount()).toNumber()) {
-          ele.textContent = await instance.getQuestion(qn);
+          console.log(qn);
+          let tmp = await instance.getQuestion(qn);
+          console.log(tmp);
+          ele.textContent = tmp;
           var dragend = function(event) {
             var direction = Math.sign(event.clientX - originX);
             if (0 == direction) {

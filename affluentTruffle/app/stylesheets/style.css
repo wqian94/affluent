@@ -1,0 +1,33 @@
+#myElement {
+    height: 50vh;
+    margin: 50px auto;
+    min-height: 400px;
+    text-align: center;
+    width: 60%;
+}
+
+.myButton {
+    -moz-box-shadow:inset 0px 0px 10px -1px #fbafe3;
+    -webkit-box-shadow:inset 0px 0px 10px -1px #fbafe3;
+    box-shadow:inset 0px 0px 10px -1px #fbafe3;
+    background-color:transparent;
+    -moz-border-radius:6px;
+    -webkit-border-radius:6px;
+    border-radius:6px;
+    border:1px solid #ee1eb5;
+    display:inline-block;
+    cursor:pointer;
+    color:#ffffff;
+    font-family:Arial;
+    font-size:20px;
+    padding:9px 33px;
+    text-decoration:none;
+}
+.myButton:hover {
+    background-color:transparent;
+    box-shadow:inset 0px 0px 10px 2px #fbafe3;
+}
+.myButton:active {
+    position:relative;
+    top:1px;
+}
