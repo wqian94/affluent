@@ -30,10 +30,13 @@ contract('Feedback basic test', (accounts) => {
   });
 */
 
-  it("should see 1 question added", async () => {
-    instance.newQuestion(144, "Do you like this class?");
+  it("should see 1 question added with correct text", async () => {
+    const qtext = "Do you like this class?";
+    instance.newQuestion(144, qtext);
     assert.equal((await instance.questionsCount.call()).toNumber(), 1,
                  "Singular question addition failed");
+    assert.equal((await instance.getQuestion(0)), qtext,
+                 "Question text not preserved");
   });
 
   it("should see 3 questions added", async () => {
