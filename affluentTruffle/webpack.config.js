@@ -1,8 +1,24 @@
+const os = require('os');
 const path = require('path');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 
+var address = null;
+{
+  const networks = os.networkInterfaces();
+  for (var network in networks) {
+    if (('lo' != network) && ('IPv4' == networks[network][0].family)) {
+      address = networks[network][0].address;
+      break;
+    }
+  }
+}
+
 module.exports = {
   entry: './app/javascripts/app.js',
+  devServer: {
+    host: address,
+    port: 4444,
+  },
   output: {
     path: path.resolve(__dirname, 'build'),
     filename: 'app.js'
