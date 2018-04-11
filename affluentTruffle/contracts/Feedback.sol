@@ -16,14 +16,19 @@ contract Feedback {
   event Question(string text);
 
   function newEnrollment(address student_addr) public returns (uint student_num) {
+    for (uint i = 0; i < enrolled_students.length; i++) {
+      if (enrolled_students[i] == student_addr) {
+        return i;
+      }
+    }
     return enrolled_students.push(student_addr)-1;
   }
  
-  function newQuestion(uint questionID, uint courseID, string text) public {
+  function newQuestion(uint courseID, string text) public {
     uint rownumber = daily_questions.length;
     daily_questions.length++;
     FeedbackQ storage question = daily_questions[rownumber];
-    question.questionID = questionID;
+    question.questionID = rownumber;
     question.courseID = courseID;
     question.question = text;
     question.voteCount[false] = 0;

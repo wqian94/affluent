@@ -31,15 +31,15 @@ contract('Feedback basic test', (accounts) => {
 */
 
   it("should see 1 question added", async () => {
-    instance.newQuestion(0, 144, "Do you like this class?");
+    instance.newQuestion(144, "Do you like this class?");
     assert.equal((await instance.questionsCount.call()).toNumber(), 1,
                  "Singular question addition failed");
   });
 
   it("should see 3 questions added", async () => {
-    instance.newQuestion(0, 144, "Do you like this class (144)?");
-    instance.newQuestion(1, 244, "Do you like this class (244)?");
-    instance.newQuestion(2, 50, "Do you like this class (50)?");
+    instance.newQuestion(144, "Do you like this class (144)?");
+    instance.newQuestion(244, "Do you like this class (244)?");
+    instance.newQuestion(50, "Do you like this class (50)?");
     assert.equal((await instance.getQuestion(0)), "Do you like this class (144)?", "Check if uploaded question for class 144 is correct.")
     assert.equal((await instance.getQuestion(1)), "Do you like this class (244)?", "Check if uploaded question for class 244 is correct.")
     assert.equal((await instance.getQuestion(2)), "Do you like this class (50)?", "Check if uploaded question for class 50 is correct.")
@@ -58,9 +58,9 @@ contract('Feedback unit tests', (accounts) => {
     for (var i = 1; i <= enrollment; i++) {
       instance.newEnrollment(accounts[i]);
     }
-    instance.newQuestion(0, 144, "Do you like this class (144)?");
-    instance.newQuestion(1, 244, "Do you like this class?");
-    instance.newQuestion(2, 50, "Do you like this class?");
+    instance.newQuestion(144, "Do you like this class (144)?");
+    instance.newQuestion(244, "Do you like this class?");
+    instance.newQuestion(50, "Do you like this class?");
   });
 
   // expect should be an array of form [[expect, qnum, responsetype], [...], ..]

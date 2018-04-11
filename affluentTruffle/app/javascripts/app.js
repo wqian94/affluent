@@ -7,6 +7,7 @@ const feedback_artifacts = require('../../build/contracts/Feedback.json');
 
 // Feedback is our usable abstraction, which we'll use through the code below.
 const Feedback = contract(feedback_artifacts);
+const gas = 4712388;  // Gas limit on transactions
 
 // The following code is simple to show off interacting with your contracts.
 // As your needs grow you will likely need to change its form and structure.
@@ -39,8 +40,56 @@ window.App = {
       self.runApp();
     });
   },
+  addQuestion: async (text) => {
+    const instance = await Feedback.deployed();
+    console.log(text);
+    instance.newQuestion(144, text, {from: account, gas: gas});
+  },
+  getResponses: async () => {
+    const instance = await Feedback.deployed();
+    const question_count = await instance.questionsCount();
+    var responses = [];
+    for (var i = 0; i < question_count; i++) {
+      responses.push([
+        await instance.getQuestion(i),
+        await instance.viewFeedback(i, false),
+        await instance.viewFeedback(i, true),
+      ]);
+    }
+    return responses;
+  },
+  tabulateResponses: async () => {
+    const responses = await window.App.getResponses();
+    const options = [false, true];
+    const table = document.createElement("table");
+
+    let tr, td;
+    for (var q = 0; q < responses.length; q++) {
+      tr = document.createElement("tr");
+      if (q) {
+        tr.style.borderTop = "1px solid black";
+      }
+      td = document.createElement("td");
+      td.setAttribute("rowspan", options.length);
+      td.textContent = (q + 1).toString() + ". " + responses[q][0];
+      tr.appendChild(td);
+      for (var opt = 0; opt < options.length; opt++) {
+        if (opt) {
+          tr = document.createElement("tr");
+        }
+        td = document.createElement("td");
+        td.textContent = options[opt] + ": " + responses[q][opt + 1].toString();
+        tr.appendChild(td);
+        table.appendChild(tr);
+      }
+    }
+
+    return table;
+  },
   runApp: async () => {
-    var class_name = "CS 144r/244r";
+    const instance = await Feedback.deployed();
+
+    const class_name = "CS 144r/244r";
 
     var questions = [
         `Was the lecture entertaining?`,
@@ -63,68 +112,35 @@ window.App = {
     });
 
     function show_question(qn) {
-      if (questions.length <= qn) {
-        ele.textContent = "Done!";
-        return;
-      }
+      ele.textContent = "Waiting for more questions...";
 
-      var question = questions[qn];
-      ele.textContent = question;
-        // var myElement = document.getElementById('myElement');
-        // myElement.textContent = question
-        // // create a simple instance
-        // // by default, it only adds horizontal recognizers
-        // var mc = new Hammer(myElement);
-        //
-        // // listen to events...
-        // mc.on("panleft panright", function(ev) {
-        //     answer = ev.type == "panleft" ? "no" : "yes"
-        //     console.log("test " + qn.toString() + ", " + question + " " + answer);
-        //     if (qn + 1 < questions.length) {
-        //         show_question(qn + 1);
-        //     }
-        // });
-      var dragend = function(event) {
-        var direction = Math.sign(event.clientX - originX);
-        if (0 == direction) {
-          return;
+      (async () => {
+        if (qn < (await instance.questionsCount()).toNumber()) {
+          ele.textContent = await instance.getQuestion(qn);
+          var dragend = function(event) {
+            var direction = Math.sign(event.clientX - originX);
+            if (0 == direction) {
+              return;
+            }
+
+            // Successfully registered response
+            var response = (0 < direction ? true : false);
+            instance.giveFeedback(response, qn, {from: account, gas: gas});
+            ele.removeEventListener("dragend", dragend);
+            show_question(qn + 1);
+          };
+          ele.addEventListener("dragend", dragend);
         }
-
-        // Successfully registered response
-        var response = (0 < direction ? true : false);
-        console.log(question + ": " + response);
-        ele.removeEventListener("dragend", dragend);
-        show_question(qn + 1);
-      };
-      ele.addEventListener("dragend", dragend);
+      })();
     }
-
-    //show_question(0);
-    var questionID = 0;
-    const user = Feedback.at(account);
-    /*for (var i = 0; i < questions.length; i++) {
-      user.contract.newQuestion(i, 144, questions[i]);
-    }*/
-    /*user.contract.Question(async (error, result) => {
-      if (error) {
-        return;
-      }
-
-      console.log(result);
-    });*/
-    console.log(user);
-    user.contract.questionsCount(async (error, result) => {
-      console.log(error, result);
-    });
-    user.contract.newQuestion(0, 144, "test", {from: account},
-      async (error, result) => {
-        console.log(error, result);
-    });
+    instance.newEnrollment(account, {from: account, gas: gas});
+    show_question(0);
   },
 };
 
 window.addEventListener('load', function() {
   // Checking if Web3 has been injected by the browser (Mist/MetaMask)
+  /*
   if (typeof web3 !== 'undefined') {
     console.warn("Using web3 detected from external source. If you find that your accounts don't appear or you have 0 Feedback, ensure you've configured that source properly. If using MetaMask, see the following link. Feel free to delete this warning. :) http://truffleframework.com/tutorials/truffle-and-metamask")
     // Use Mist/MetaMask's provider
@@ -134,6 +150,8 @@ window.addEventListener('load', function() {
     // fallback - use your fallback strategy (local node / hosted node + in-dapp id mgmt / fail)
     window.web3 = new Web3(new Web3.providers.HttpProvider("http://127.0.0.1:9545"));
   }
+  */
+  window.web3 = new Web3(new Web3.providers.HttpProvider("http://127.0.0.1:8545"));
 
   App.start();
 });
