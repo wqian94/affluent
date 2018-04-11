@@ -39,15 +39,17 @@ contract('Feedback basic test', (accounts) => {
                  "Question text not preserved");
   });
 
-  it("should see 3 questions added", async () => {
-    instance.newQuestion(144, "Do you like this class (144)?");
-    instance.newQuestion(244, "Do you like this class (244)?");
-    instance.newQuestion(50, "Do you like this class (50)?");
-    assert.equal((await instance.getQuestion(0)), "Do you like this class (144)?", "Check if uploaded question for class 144 is correct.")
-    assert.equal((await instance.getQuestion(1)), "Do you like this class (244)?", "Check if uploaded question for class 244 is correct.")
-    assert.equal((await instance.getQuestion(2)), "Do you like this class (50)?", "Check if uploaded question for class 50 is correct.")
+  it("should see 3 questions added with correct texts", async () => {
+    const qtexts = ["Do you like this class?", "How's the weather?", "Dinner?"];
+    instance.newQuestion(144, qtexts[0]);
+    instance.newQuestion(244, qtexts[1]);
+    instance.newQuestion(50, qtexts[2]);
     assert.equal((await instance.questionsCount.call()).toNumber(), 3,
                  "Multiple question addition failed");
+    for (var i = 0; i < qtexts.length; i++) {
+      assert.equal((await instance.getQuestion(i)), qtexts[i],
+                   "Question text not preserved");
+    }
   });
 });
 
@@ -61,9 +63,10 @@ contract('Feedback unit tests', (accounts) => {
     for (var i = 1; i <= enrollment; i++) {
       instance.newEnrollment(accounts[i]);
     }
-    instance.newQuestion(144, "Do you like this class (144)?");
-    instance.newQuestion(244, "Do you like this class?");
-    instance.newQuestion(50, "Do you like this class?");
+    const qtexts = ["Do you like this class?", "How's the weather?", "Dinner?"];
+    instance.newQuestion(144, qtexts[0]);
+    instance.newQuestion(244, qtexts[1]);
+    instance.newQuestion(50, qtexts[2]);
   });
 
   // expect should be an array of form [[expect, qnum, responsetype], [...], ..]
