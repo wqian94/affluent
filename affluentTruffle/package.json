@@ -5,7 +5,8 @@
   "scripts": {
     "lint": "eslint ./",
     "build": "webpack",
-    "dev": "webpack-dev-server"
+    "dev": "webpack-dev-server",
+    "config": "node config"
   },
   "author": "Nobody Special",
   "license": "MIT",
