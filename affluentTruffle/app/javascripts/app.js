@@ -2,6 +2,8 @@
 import { default as Web3} from 'web3';
 import { default as contract } from 'truffle-contract'
 
+const os = require('os');
+
 // Import our contract artifacts and turn them into usable abstractions.
 const feedback_artifacts = require('../../build/contracts/Feedback.json');
 
@@ -89,21 +91,29 @@ window.App = {
   runApp: async () => {
     const instance = await Feedback.deployed();
 
-    const class_name = "CS 144r/244r";
-
-    var questions = [
-        `Was the lecture entertaining?`,
-        `Was the lecture valuable?`,
-        `Was the lecturer engaging?`,
-        `Was the pace too slow?`,
-        `Did you just use your computer?`,
-    ];
-
-    var ele = document.getElementById("myElement");
+    const ele = document.getElementById("myElement");
     var originX = null;
+    var qnum = null;
 
     ele.addEventListener("drag", function(event) {
       var direction = Math.sign(event.clientX - originX);
+    });
+
+    ele.addEventListener("dragend", function(event) {
+      if (null == qnum) {
+        return;
+      }
+
+      var direction = Math.sign(event.clientX - originX);
+      if (0 == direction) {
+        return;
+      }
+
+      // Successfully registered response
+      var response = (0 < direction ? true : false);
+      instance.giveFeedback(response, qnum, {from: account, gas: gas});
+      show_question(qnum + 1);
+      qnum = null;
     });
 
     ele.addEventListener("dragstart", function(event) {
@@ -113,28 +123,21 @@ window.App = {
 
     function show_question(qn) {
       ele.textContent = "Waiting for more questions...";
-
-      (async () => {
-        if (qn < (await instance.questionsCount()).toNumber()) {
-          console.log(qn);
-          let tmp = await instance.getQuestion(qn);
-          console.log(tmp);
-          ele.textContent = tmp;
-          var dragend = function(event) {
-            var direction = Math.sign(event.clientX - originX);
-            if (0 == direction) {
-              return;
-            }
-
-            // Successfully registered response
-            var response = (0 < direction ? true : false);
-            instance.giveFeedback(response, qn, {from: account, gas: gas});
-            ele.removeEventListener("dragend", dragend);
-            show_question(qn + 1);
-          };
-          ele.addEventListener("dragend", dragend);
+      async function pop() {
+        if (qn < (await instance.questionsCount())) {
+          instance.popQuestion(qn, {from: account, gas: gas});
+        } else {
+          setTimeout(pop, 1000);
         }
-      })();
+      }
+      pop();
+
+      instance.Question().watch(async (error, result) => {
+        if (!error) {
+          ele.textContent = result.args.text;
+          qnum = qn;
+        }
+      });
     }
     instance.newEnrollment(account, {from: account, gas: gas});
     show_question(0);
@@ -154,7 +157,9 @@ window.addEventListener('load', function() {
     window.web3 = new Web3(new Web3.providers.HttpProvider("http://127.0.0.1:9545"));
   }
   */
-  window.web3 = new Web3(new Web3.providers.HttpProvider("http://127.0.0.1:8545"));
+
+  window.web3 = new Web3(new Web3.providers.HttpProvider(
+    "http://" + location.hostname + ":8545"));
 
   App.start();
 });

@@ -41,7 +41,7 @@ contract Feedback {
     }
   }
 
-  function getQuestion(uint questionID) public constant returns(string question) {
+  function getQuestion(uint questionID) public constant returns(string) {
     return daily_questions[questionID].question;
   }
 

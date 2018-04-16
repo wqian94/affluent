@@ -1,33 +1,54 @@
 #myElement {
-    height: 50vh;
-    margin: 50px auto;
-    min-height: 400px;
-    text-align: center;
-    width: 60%;
+  box-sizing: border-box;
+  font-size: 5vw;
+  height: 100vh;
+  line-height: 1;
+  max-height: 100vh;
+  padding-top: 66px;
+  position: absolute;
+  text-align: center;
+  top: 0px;
+  vertical-align: middle;
+  width: 100%;
+  z-index: -1;
+}
+
+#myElement::after {
+  content: '';
+  display: inline-block;
+  height: 100%;
+  vertical-align: middle;
+  width: 0px;
+}
+
+#myElement > * {
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .myButton {
-    -moz-box-shadow:inset 0px 0px 10px -1px #fbafe3;
-    -webkit-box-shadow:inset 0px 0px 10px -1px #fbafe3;
-    box-shadow:inset 0px 0px 10px -1px #fbafe3;
-    background-color:transparent;
-    -moz-border-radius:6px;
-    -webkit-border-radius:6px;
-    border-radius:6px;
-    border:1px solid #ee1eb5;
-    display:inline-block;
-    cursor:pointer;
-    color:#ffffff;
-    font-family:Arial;
-    font-size:20px;
-    padding:9px 33px;
-    text-decoration:none;
+  -moz-box-shadow:inset 0px 0px 10px -1px #fbafe3;
+  -webkit-box-shadow:inset 0px 0px 10px -1px #fbafe3;
+  box-shadow:inset 0px 0px 10px -1px #fbafe3;
+  background-color:transparent;
+  -moz-border-radius:6px;
+  -webkit-border-radius:6px;
+  border-radius:6px;
+  border:1px solid #ee1eb5;
+  display:inline-block;
+  cursor:pointer;
+  color:#ffffff;
+  font-family:Arial;
+  font-size:20px;
+  margin: 0px 5px;
+  padding:9px 33px;
+  text-decoration:none;
 }
 .myButton:hover {
-    background-color:transparent;
-    box-shadow:inset 0px 0px 10px 2px #fbafe3;
+  background-color:transparent;
+  box-shadow:inset 0px 0px 10px 2px #fbafe3;
 }
 .myButton:active {
-    position:relative;
-    top:1px;
+  position:relative;
+  top:1px;
 }
