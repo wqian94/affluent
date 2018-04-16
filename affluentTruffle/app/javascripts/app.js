@@ -88,12 +88,52 @@ window.App = {
 
     return table;
   },
+  profView: async () => {
+    const ele = document.getElementById("myElement");
+    const view = document.getElementById("statsViewPort");
+    ele.style.display = "none";
+    view.style.display = "block";
+    
+    const responses = await window.App.getResponses();
+
+    for (let i = 0; i < responses.length; i++) {
+      let this_question = responses[i][0]
+      let false_num = parseInt(responses[i][1].toString());
+      let true_num = parseInt(responses[i][2].toString());
+
+      console.log(false_num, true_num);
+      let this_total = false_num + true_num;
+      let true_percent = true_num / this_total;
+      let false_percent = false_num / this_total;
+      console.log(this_question);
+      console.log(true_percent);
+      console.log(false_percent);
+
+    }
+  },
+  studentView: async () => {
+    const ele = document.getElementById("myElement");
+    const view = document.getElementById("statsViewPort");
+    ele.style.display = "";
+    view.style.display = "none";
+  },
   runApp: async () => {
     const instance = await Feedback.deployed();
 
     const ele = document.getElementById("myElement");
+
     var originX = null;
     var qnum = null;
+
+    // handler to change to the professor view
+    document.getElementById("profView").addEventListener("click", async (event) => {
+      await window.App.profView(); 
+    });
+
+    // hanler to change to the student view
+    document.getElementById("studentView").addEventListener("click", async (event) => {
+      await window.App.studentView(); 
+    });
 
     ele.addEventListener("drag", function(event) {
       var direction = Math.sign(event.clientX - originX);

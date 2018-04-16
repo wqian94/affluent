@@ -13,6 +13,15 @@
   z-index: -1;
 }
 
+#statsViewPort {
+  display: none;
+
+  height: 100vh;
+  font-size: 3vw;
+  padding: 10px;
+  text-align: center;
+}
+
 #myElement::after {
   content: '';
   display: inline-block;
