@@ -120,6 +120,7 @@ window.App = {
   runApp: async () => {
     const instance = await Feedback.deployed();
 
+    const buffer = 0.05 * window.screen.width;
     const ele = document.getElementById("myElement");
 
     var originX = null;
@@ -135,44 +136,86 @@ window.App = {
       await window.App.studentView(); 
     });
 
+    const getDefined = function() {
+      for (const f of arguments) {
+        const ele = f();
+        if ('undefined' != typeof ele) {
+          return ele;
+        }
+      }
+      return null;
+    };
+
+    const getDir = function(x) {
+      const diff = x - originX;
+      const direction = Math.sign(diff);
+      return direction * Math.max(0, Math.abs(diff) - buffer);
+    };
+
+    const drag = function(event) {
+      const x = getDefined(
+        function() { return event.clientX; },
+        function() { return event.changedTouches[0].pageX; });
+      const direction = getDir(x);
+      if (0 == direction) {
+        ele.style.background = 'white';
+        return;
+      }
+      const offset = Math.max(0, Math.abs(x - originX) - buffer);
+      const ratio = Math.min(1, offset / (0.1 *  window.screen.width));
+      const clr_neutral = `rgba(255, 255, 255, ${ratio})`;
+      const clr_true = `rgba(66, 218, 111, ${ratio})`;
+      const clr_false = `rgba(255, 105, 97, ${ratio})`;
+      if (direction < 0) {  // false
+        ele.style.background =
+          `linear-gradient(to right, ${clr_false}, ${clr_neutral})`;
+      } else {  // true
+        ele.style.background =
+          `linear-gradient(to left, ${clr_true}, ${clr_neutral})`;
+      }
+    };
+
     const dragend = function(event) {
+      ele.style.background = 'white';
       if (null == qnum) {
         return;
       }
 
-      var direction = Math.sign(event.clientX - originX);
+      const x = getDefined(
+        function() { return event.clientX; },
+        function() { return event.changedTouches[0].pageX; });
+      const direction = getDir(x);
       if (0 == direction) {
         return;
       }
 
       // Successfully registered response
-      var response = (0 < direction ? true : false);
+      const response = (0 < direction ? true : false);
       instance.giveFeedback(response, qnum, {from: account, gas: gas});
       show_question(qnum + 1);
       qnum = null;
+      originX = null;
     };
 
     const dragstart = function(event) {
-      event.dataTransfer.setDragImage(new Image(), 0, 0);
-      originX = event.clientX;
+      const x = getDefined(
+        function() { return event.clientX; },
+        function() { return event.changedTouches[0].pageX; });
+      originX = x;
+      if (event.dataTransfer) {
+        event.dataTransfer.setDragImage(new Image(), 0, 0);
+      }
     };
 
-    ele.addEventListener("drag", function(event) {
-      var direction = Math.sign(event.clientX - originX);
-    });
-
+    ele.addEventListener("drag", drag);
     ele.addEventListener("dragend", dragend);
     ele.addEventListener("dragstart", dragstart);
-    ele.addEventListener("touchend", function(event) {
-      if (event.sourceCapabilities.firesTouchEvents) {
-        dragend(event);
-      }
+    ele.addEventListener("touchcancel", function() {
+      originX = null;
     });
-    ele.addEventListener("touchstart", function(event) {
-      if (event.sourceCapabilities.firesTouchEvents) {
-        dragstart(event);
-      }
-    });
+    ele.addEventListener("touchend", dragend);
+    ele.addEventListener("touchmove", drag);
+    ele.addEventListener("touchstart", dragstart);
 
     function show_question(qn) {
       ele.textContent = "Waiting for more questions...";
