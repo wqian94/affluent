@@ -135,11 +135,7 @@ window.App = {
       await window.App.studentView(); 
     });
 
-    ele.addEventListener("drag", function(event) {
-      var direction = Math.sign(event.clientX - originX);
-    });
-
-    ele.addEventListener("dragend", function(event) {
+    const dragend = function(event) {
       if (null == qnum) {
         return;
       }
@@ -154,11 +150,28 @@ window.App = {
       instance.giveFeedback(response, qnum, {from: account, gas: gas});
       show_question(qnum + 1);
       qnum = null;
-    });
+    };
 
-    ele.addEventListener("dragstart", function(event) {
+    const dragstart = function(event) {
       event.dataTransfer.setDragImage(new Image(), 0, 0);
       originX = event.clientX;
+    };
+
+    ele.addEventListener("drag", function(event) {
+      var direction = Math.sign(event.clientX - originX);
+    });
+
+    ele.addEventListener("dragend", dragend);
+    ele.addEventListener("dragstart", dragstart);
+    ele.addEventListener("touchend", function(event) {
+      if (event.sourceCapabilities.firesTouchEvents) {
+        dragend(event);
+      }
+    });
+    ele.addEventListener("touchstart", function(event) {
+      if (event.sourceCapabilities.firesTouchEvents) {
+        dragstart(event);
+      }
     });
 
     function show_question(qn) {
