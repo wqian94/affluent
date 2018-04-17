@@ -8,7 +8,8 @@
     "dev": "webpack-dev-server",
     "config": "node config",
     "truffle": "node_modules/truffle/build/cli.bundled.js",
-    "ganache": "node_modules/ganache-cli/build/cli.node.js"
+    "migrate": "rm -rf build && node_modules/truffle/build/cli.bundled.js migrate",
+    "ganache": "node ganache"
   },
   "author": "Nobody Special",
   "license": "MIT",

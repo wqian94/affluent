@@ -1,9 +1,9 @@
 const fs = require('fs');
-const { GANACHE_LOCATION } = require('./util');
+const { SETTINGS_LOCATION } = require('./util');
 
-const config = JSON.parse(fs.readFileSync(GANACHE_LOCATION));
+const config = JSON.parse(fs.readFileSync(SETTINGS_LOCATION));
 
-console.log(`Config read from ${GANACHE_LOCATION}: ` +
+console.log(`Config read from ${SETTINGS_LOCATION}: ` +
   `host(${config.server.hostname}), ` +
   `port(${config.server.port}), `+
   `network_id(${config.server.network_id})`);

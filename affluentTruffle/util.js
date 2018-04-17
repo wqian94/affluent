@@ -2,7 +2,7 @@ const fs = require('fs');
 const process = require('process');
 
 module.exports = {
-  GANACHE_LOCATION : function() {
+  GANACHE_LOCATION: function() {
     const possible = [
       process.env.APPDATA + '\\Ganache\\Settings',
       process.env.XDG_CONFIG_HOME + '/Ganache/Settings',
@@ -18,4 +18,5 @@ module.exports = {
 
     return null;
   }(),
+  SETTINGS_LOCATION: 'settings',  // Local settings location
 }

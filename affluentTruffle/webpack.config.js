@@ -1,11 +1,11 @@
 const fs = require('fs');
 const path = require('path');
-const { GANACHE_LOCATION } = require('./util');
+const { SETTINGS_LOCATION } = require('./util');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 
-const config = JSON.parse(fs.readFileSync(GANACHE_LOCATION));
+const config = JSON.parse(fs.readFileSync(SETTINGS_LOCATION));
 
-console.log(`Config read from ${GANACHE_LOCATION}: ` +
+console.log(`Config read from ${SETTINGS_LOCATION}: ` +
   `host(${config.server.hostname})`);
 
 module.exports = {
