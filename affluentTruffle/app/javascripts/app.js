@@ -39,12 +39,21 @@ window.App = {
       accounts = accs;
       account = accounts[0];
 
+      // handler to change to the professor view
+      document.getElementById("profView").addEventListener("click", async (event) => {
+        await window.App.profView();
+      });
+
+      // handler to change to the student view
+      document.getElementById("studentView").addEventListener("click", async (event) => {
+        await window.App.studentView();
+      });
+
       self.runApp();
     });
   },
   addQuestion: async (text) => {
     const instance = await Feedback.deployed();
-    console.log(text);
     instance.newQuestion(144, text, {from: account, gas: gas});
   },
   getResponses: async () => {
@@ -120,21 +129,11 @@ window.App = {
   runApp: async () => {
     const instance = await Feedback.deployed();
 
-    const buffer = 0.05 * window.screen.width;
+    const buffer = Math.max(50, 0.05 * window.screen.width);
     const ele = document.getElementById("myElement");
 
     var originX = null;
     var qnum = null;
-
-    // handler to change to the professor view
-    document.getElementById("profView").addEventListener("click", async (event) => {
-      await window.App.profView(); 
-    });
-
-    // hanler to change to the student view
-    document.getElementById("studentView").addEventListener("click", async (event) => {
-      await window.App.studentView(); 
-    });
 
     const getDefined = function() {
       for (const f of arguments) {
@@ -162,7 +161,8 @@ window.App = {
         return;
       }
       const offset = Math.max(0, Math.abs(x - originX) - buffer);
-      const ratio = Math.min(1, offset / (0.1 *  window.screen.width));
+      const ratio = Math.min(
+        1, offset / Math.max(200, 0.1 *  window.screen.width));
       const clr_neutral = `rgba(255, 255, 255, ${ratio})`;
       const clr_true = `rgba(66, 218, 111, ${ratio})`;
       const clr_false = `rgba(255, 105, 97, ${ratio})`;

@@ -6,7 +6,9 @@
     "lint": "eslint ./",
     "build": "webpack",
     "dev": "webpack-dev-server",
-    "config": "node config"
+    "config": "node config",
+    "truffle": "node_modules/truffle/build/cli.bundled.js",
+    "ganache": "node_modules/ganache-cli/build/cli.node.js"
   },
   "author": "Nobody Special",
   "license": "MIT",
@@ -36,6 +38,9 @@
     "webpack-dev-server": "^2.3.0"
   },
   "dependencies": {
+    "ganache-cli": "^6.1.0",
+    "ganache-core": "^2.1.0",
+    "truffle": "^4.1.6",
     "upath": "^1.0.4"
   }
 }

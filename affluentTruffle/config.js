@@ -1,12 +1,13 @@
 const fs = require('fs');
 const os = require('os');
+const process = require('process');
 const { GANACHE_LOCATION } = require('./util');
 
 {
   var address = '127.0.0.1';
-  const port = 8545;
-  const network_id = 144244;
-  {
+  const port = process.argv.length < 4 ? 8545 : process.argv[3];
+  const network_id = process.argv.length < 5 ? 144244 : process.argv[4];
+  if (process.argv.length < 3) {
     const networks = os.networkInterfaces();
     for (const network in networks) {
       if (('lo' != network) && ('IPv4' == networks[network][0].family)) {
@@ -14,6 +15,8 @@ const { GANACHE_LOCATION } = require('./util');
         break;
       }
     }
+  } else {
+    address = process.argv[2];
   }
 
   if (GANACHE_LOCATION) {
