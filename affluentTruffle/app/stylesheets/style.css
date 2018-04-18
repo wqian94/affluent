@@ -55,6 +55,10 @@
   z-index: -1;
 }
 
+#summaryView {
+  display: none;
+}
+
 .centered {
   text-align: center;
 }

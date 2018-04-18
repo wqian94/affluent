@@ -25,6 +25,37 @@ const get = function(id) {
   return document.getElementById(id);
 };
 
+const plotData = [];
+const plotLayout = {
+  title: 'CS 144r/244r',
+  showlegend: true,
+  xaxis: {
+    title: 'Day',
+  },
+  yaxis: {
+    title: '% Yes Responses',
+  },
+};
+
+// Data in {day: ratio} form
+const makePlotQuestion = function(text, data) {
+  const q = {
+    x: [],
+    y: [],
+    mode: 'lines+markers',
+    connectgaps: true,
+    name: text,
+    line: {shape: 'spline'},
+  };
+  for (const day in data) {
+    q.x.push(day);
+    q.y.push(data[day]);
+  }
+  return q;
+};
+
+const today = 6;
+
 window.App = {
   start: function() {
     var self = this;
@@ -126,11 +157,17 @@ window.App = {
     ele.className = "centered";
     ele.id = "summaryView";
     document.body.appendChild(ele);
+    self.populateSummary(self).then(() => {
+      self.replot(self);
+    });
     if (account == accounts[0]) {
       self.launchInstructor(self);
     } else {
       self.launchStudent(self);
     }
+  },
+  replot: async (self) => {
+    Plotly.newPlot('summaryView', plotData, plotLayout);
   },
   addQuestion: async (text) => {
     const instance = await Feedback.deployed();
@@ -139,7 +176,7 @@ window.App = {
   getResponses: async () => {
     const instance = await Feedback.deployed();
     const question_count = await instance.questionsCount();
-    var responses = [];
+    const responses = [];
     for (var i = 0; i < question_count; i++) {
       responses.push([
         await instance.getQuestion(i),
@@ -148,6 +185,25 @@ window.App = {
       ]);
     }
     return responses;
+  },
+  ratioToPercent: function(ratio) {  // Converts a ratio to a percent
+    return parseInt(10000 * ratio) / 100;
+  },
+  populateSummary: async (self) => {
+    const responses = await self.getResponses();
+    var qnum = 0;
+    for (const r of responses) {
+      const data = {};
+      for (var i = 1; i < today; i++) {
+        data[i] = self.ratioToPercent(Math.abs(Math.sin(
+          1 + i * qnum * .1 + Math.sqrt(i + qnum))));
+      }
+      data[today] = self.ratioToPercent(r[2] / (r[1] + r[2]));
+      console.log(data);
+      plotData.push(makePlotQuestion(r[0], data));
+      qnum++;
+    }
+    console.log(plotData);
   },
   tabulateResponses: async () => {
     const responses = await window.App.getResponses();
@@ -280,6 +336,7 @@ window.App = {
       get("action").removeEventListener("click", actionToSummary);
       get("responseCanvas").style.display = "none";
       get("summaryView").style.display = "block";
+      self.replot(self);
       get("action").textContent = actionResponseString;
       get("action").addEventListener("click", actionToResponse);
     };
