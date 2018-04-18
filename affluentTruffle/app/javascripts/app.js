@@ -82,16 +82,6 @@ window.App = {
     });
   },
   setup: async (self) => {
-    // handler to change to the professor view
-    /*get("profView").addEventListener("click", async (event) => {
-      await window.App.profView();
-    });
-
-    // handler to change to the student view
-    get("studentView").addEventListener("click", async (event) => {
-      await window.App.studentView();
-    });*/
-
     await self.setupLogin(self);
 
     get("loginButton").click();
@@ -152,20 +142,6 @@ window.App = {
       }
     });
   },
-  launch: async (self) => {
-    const ele = document.createElement("div");
-    ele.className = "centered";
-    ele.id = "summaryView";
-    document.body.appendChild(ele);
-    self.populateSummary(self).then(() => {
-      self.replot(self);
-    });
-    if (account == accounts[0]) {
-      self.launchInstructor(self);
-    } else {
-      self.launchStudent(self);
-    }
-  },
   replot: async (self) => {
     Plotly.newPlot('summaryView', plotData, plotLayout);
   },
@@ -205,62 +181,19 @@ window.App = {
     }
     console.log(plotData);
   },
-  tabulateResponses: async () => {
-    const responses = await window.App.getResponses();
-    const options = [false, true];
-    const table = document.createElement("table");
-
-    let tr, td;
-    for (var q = 0; q < responses.length; q++) {
-      tr = document.createElement("tr");
-      if (q) {
-        tr.style.borderTop = "1px solid black";
-      }
-      td = document.createElement("td");
-      td.setAttribute("rowspan", options.length);
-      td.textContent = (q + 1).toString() + ". " + responses[q][0];
-      tr.appendChild(td);
-      for (var opt = 0; opt < options.length; opt++) {
-        if (opt) {
-          tr = document.createElement("tr");
-        }
-        td = document.createElement("td");
-        td.textContent = options[opt] + ": " + responses[q][opt + 1].toString();
-        tr.appendChild(td);
-        table.appendChild(tr);
-      }
+  launch: async (self) => {
+    const ele = document.createElement("div");
+    ele.className = "centered";
+    ele.id = "summaryView";
+    document.body.appendChild(ele);
+    self.populateSummary(self).then(() => {
+      self.replot(self);
+    });
+    if (account == accounts[0]) {
+      self.launchInstructor(self);
+    } else {
+      self.launchStudent(self);
     }
-
-    return table;
-  },
-  profView: async () => {
-    const ele = document.getElementById("myElement");
-    const view = document.getElementById("statsViewPort");
-    ele.style.display = "none";
-    view.style.display = "block";
-    
-    const responses = await window.App.getResponses();
-
-    for (let i = 0; i < responses.length; i++) {
-      let this_question = responses[i][0]
-      let false_num = parseInt(responses[i][1].toString());
-      let true_num = parseInt(responses[i][2].toString());
-
-      console.log(false_num, true_num);
-      let this_total = false_num + true_num;
-      let true_percent = true_num / this_total;
-      let false_percent = false_num / this_total;
-      console.log(this_question);
-      console.log(true_percent);
-      console.log(false_percent);
-
-    }
-  },
-  studentView: async () => {
-    const ele = document.getElementById("myElement");
-    const view = document.getElementById("statsViewPort");
-    ele.style.display = "";
-    view.style.display = "none";
   },
   launchInstructor: async (self) => {
     const instance = await Feedback.deployed();
