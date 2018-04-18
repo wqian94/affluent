@@ -1,3 +1,7 @@
+:root, html, body, * {
+  font-family: 'Raleway';
+}
+
 #action {
   display: none;
 }
