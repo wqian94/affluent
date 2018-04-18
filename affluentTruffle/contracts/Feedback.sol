@@ -12,16 +12,19 @@ contract Feedback {
 
   FeedbackQ[] private daily_questions;
   address[] private enrolled_students;
+  mapping (address => uint) private student_progress;
 
-  event Question(string text);
+  event Question(address target, string text, uint qnum);
+  event SummaryUpdated();
 
-  function newEnrollment(address student_addr) public returns (uint student_num) {
+  function newEnrollment(address student_addr) public {
     for (uint i = 0; i < enrolled_students.length; i++) {
       if (enrolled_students[i] == student_addr) {
-        return i;
+        return;
       }
     }
-    return enrolled_students.push(student_addr)-1;
+    enrolled_students.push(student_addr);
+    student_progress[student_addr] = 0;
   }
  
   function newQuestion(uint courseID, string text) public {
@@ -33,11 +36,13 @@ contract Feedback {
     question.question = text;
     question.voteCount[false] = 0;
     question.voteCount[true] = 0;
+    emit SummaryUpdated();
   }
 
-  function popQuestion(uint questionID) public {
-    if (questionID < questionsCount()) {
-      emit Question(daily_questions[questionID].question);
+  function popQuestion() public {
+    uint qnum = student_progress[msg.sender];
+    if (qnum < questionsCount()) {
+      emit Question(msg.sender, daily_questions[qnum].question, qnum);
     }
   }
 
@@ -49,24 +54,30 @@ contract Feedback {
     return daily_questions.length;
   }
 
+  function hasNextQuestion() public constant returns (bool) {
+    return student_progress[msg.sender] < questionsCount();
+  }
+
   function studentsCount() public constant returns(uint studentCount) {
     return enrolled_students.length;
   }
 
-  function giveFeedback(bool feedback, uint questionID) public {
-    uint studcount = studentsCount();
-    uint j = 0;
-    bool inclass = false;
-    for (j; j < studcount; j++ ) {
-      if (enrolled_students[j] == msg.sender) {
-        inclass = true;
-        break;
+  function isEnrolled(address addr) public view returns(bool) {
+    uint count = studentsCount();
+    for (uint i = 0; i < count; i++) {
+      if (enrolled_students[i] == addr) {
+        return true;
       }
     }
+    return false;
+  }
 
-    require(inclass);
+  function giveFeedback(bool feedback, uint questionID) public {
+    require(isEnrolled(msg.sender));
 
     daily_questions[questionID].voteCount[feedback]++;
+    student_progress[msg.sender]++;
+    emit SummaryUpdated();
   }
 
   function viewFeedback(uint questionID, bool responsetype) public

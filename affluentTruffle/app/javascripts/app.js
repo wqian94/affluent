@@ -108,6 +108,8 @@ window.App = {
             get("newUser").setSelectionRange(0, accounts[i].length);
             get("newUser").parentNode.childNodes[0].textContent =
               "Your address is:";
+            (await Feedback.deployed()).newEnrollment(
+              accounts[i], {from: accounts[0], gas: gas});
           } else {
             get("newUser").value = "Unavailable";
             alert("This class has reached its maximum capacity. " +
@@ -115,6 +117,10 @@ window.App = {
           }
         }
       }
+    });
+
+    $("#loginModal").on("shown.bs.modal", async (event) => {
+      get("existingUserAddress").focus();
     });
 
     const newUser_click = async (event) => {
@@ -127,18 +133,20 @@ window.App = {
     get("existingUser").addEventListener("click", async (event) => {
       const address = get("existingUserAddress").value;
       var found = false;
-      for (const acc of accounts) {
-        if (address == acc) {
-          account = address;
-          get("existingUserAddress").value = "";
-          get("loginModal").click();
-          found = true;
-          self.launch(self);
-          break;
-        }
-      }
-      if (!found) {
+      if (address == accounts[0] ||
+          await (await Feedback.deployed()).isEnrolled.call(address)) {
+        account = address;
+        get("existingUserAddress").value = "";
+        $("#loginModal").modal("hide");
+        found = true;
+        self.launch(self);
+      } else {
         alert(`"${address}" is not a registered address. Please try again.`);
+      }
+    });
+    get("existingUserAddress").addEventListener("keydown", async (event) => {
+      if ("Enter" == event.key) {
+        get("existingUser").click();
       }
     });
   },
@@ -147,6 +155,7 @@ window.App = {
   },
   addQuestion: async (text) => {
     const instance = await Feedback.deployed();
+    const self = window.App;
     instance.newQuestion(144, text, {from: account, gas: gas});
   },
   getResponses: async () => {
@@ -156,8 +165,8 @@ window.App = {
     for (var i = 0; i < question_count; i++) {
       responses.push([
         await instance.getQuestion(i),
-        await instance.viewFeedback(i, false),
-        await instance.viewFeedback(i, true),
+        (await instance.viewFeedback(i, false)).toNumber(),
+        (await instance.viewFeedback(i, true)).toNumber(),
       ]);
     }
     return responses;
@@ -168,27 +177,25 @@ window.App = {
   populateSummary: async (self) => {
     const responses = await self.getResponses();
     var qnum = 0;
+    plotData.splice(0, plotData.length);
     for (const r of responses) {
       const data = {};
       for (var i = 1; i < today; i++) {
         data[i] = self.ratioToPercent(Math.abs(Math.sin(
           1 + i * qnum * .1 + Math.sqrt(i + qnum))));
       }
-      data[today] = self.ratioToPercent(r[2] / (r[1] + r[2]));
-      console.log(data);
+      if (r[1] + r[2] > 0) {
+        console.log(r);
+        data[today] = self.ratioToPercent(r[2] / (r[1] + r[2]));
+      } else {
+        data[today] = 0.0;
+      }
       plotData.push(makePlotQuestion(r[0], data));
       qnum++;
     }
-    console.log(plotData);
   },
   launch: async (self) => {
-    const ele = document.createElement("div");
-    ele.className = "centered";
-    ele.id = "summaryView";
-    document.body.appendChild(ele);
-    self.populateSummary(self).then(() => {
-      self.replot(self);
-    });
+    self.launchSummary(self);
     if (account == accounts[0]) {
       self.launchInstructor(self);
     } else {
@@ -233,8 +240,13 @@ window.App = {
       '</div>';
     document.body.appendChild(modal);
 
+    $("#addQuestionModal").on("shown.bs.modal", async (event) => {
+      get("addQuestionModalText").focus();
+    });
+
     get("addQuestionModalSubmit").addEventListener("click", async (event) => {
       const questions = get("addQuestionModalText").value.split("\n");
+      get("addQuestionModalText").value = "";
       for (const q of questions) {
         if (q.length) {
           self.addQuestion(q);
@@ -269,13 +281,13 @@ window.App = {
       get("action").removeEventListener("click", actionToSummary);
       get("responseCanvas").style.display = "none";
       get("summaryView").style.display = "block";
-      self.replot(self);
+      self.replot();
       get("action").textContent = actionResponseString;
       get("action").addEventListener("click", actionToResponse);
     };
     get("action").addEventListener("click", actionToSummary);
 
-    const buffer = Math.max(50, 0.05 * window.screen.width);
+    const buffer = Math.max(50, 0.05 * window.innerWidth);
     var originX = null;
     var qnum = null;
 
@@ -296,8 +308,9 @@ window.App = {
     };
 
     const drag = function(event) {
+      console.log(event.screenX, window.innerWidth, originX);
       const x = getDefined(
-        function() { return event.clientX; },
+        function() { return event.screenX; },
         function() { return event.changedTouches[0].pageX; });
       const direction = getDir(x);
       if (0 == direction) {
@@ -306,7 +319,7 @@ window.App = {
       }
       const offset = Math.max(0, Math.abs(x - originX) - buffer);
       const ratio = Math.min(
-        1, offset / Math.max(200, 0.1 *  window.screen.width));
+        1, offset / Math.max(200, 0.1 *  window.innerWidth));
       const clr_neutral = `rgba(255, 255, 255, ${ratio})`;
       const clr_true = `rgba(66, 218, 111, ${ratio})`;
       const clr_false = `rgba(255, 105, 97, ${ratio})`;
@@ -326,7 +339,7 @@ window.App = {
       }
 
       const x = getDefined(
-        function() { return event.clientX; },
+        function() { return event.screenX; },
         function() { return event.changedTouches[0].pageX; });
       const direction = getDir(x);
       if (0 == direction) {
@@ -336,14 +349,14 @@ window.App = {
       // Successfully registered response
       const response = (0 < direction ? true : false);
       instance.giveFeedback(response, qnum, {from: account, gas: gas});
-      show_question(qnum + 1);
+      show_question();
       qnum = null;
       originX = null;
     };
 
     const dragstart = function(event) {
       const x = getDefined(
-        function() { return event.clientX; },
+        function() { return event.screenX; },
         function() { return event.changedTouches[0].pageX; });
       originX = x;
       if (event.dataTransfer) {
@@ -361,11 +374,11 @@ window.App = {
     ele.addEventListener("touchmove", drag);
     ele.addEventListener("touchstart", dragstart);
 
-    function show_question(qn) {
+    function show_question() {
       ele.textContent = "Waiting for more questions...";
       async function pop() {
-        if (qn < (await instance.questionsCount())) {
-          instance.popQuestion(qn, {from: account, gas: gas});
+        if ((await instance.hasNextQuestion({from: account}))) {
+          instance.popQuestion({from: account, gas: gas});
         } else {
           setTimeout(pop, 1000);
         }
@@ -373,14 +386,31 @@ window.App = {
       pop();
 
       instance.Question().watch(async (error, result) => {
-        if (!error) {
+        if (!error && account == result.args.target) {
           ele.textContent = result.args.text;
-          qnum = qn;
+          qnum = result.args.qnum.toNumber();
         }
       });
     }
-    instance.newEnrollment(account, {from: account, gas: gas});
-    show_question(0);
+    show_question();
+  },
+  launchSummary: async (self) => {
+    const instance = await Feedback.deployed();
+    const ele = document.createElement("div");
+    ele.className = "centered";
+    ele.id = "summaryView";
+    document.body.appendChild(ele);
+    const draw = async () => {
+      self.populateSummary(self).then(() => {
+        self.replot(self);
+      });
+    };
+    instance.SummaryUpdated().watch(async (error, result) => {
+      if (!error) {
+        draw();
+      }
+    });
+    draw();
   },
 };
 
