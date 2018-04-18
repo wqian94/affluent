@@ -9,77 +9,74 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 
     <link rel="stylesheet" href="style.css" type="text/css">
-    <title>Hello, world!</title>
+    <title>affluent.</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   </head>
   <body>
-      <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <a class="navbar-brand" href="#">affluent.</a>
-        <button class="myButton" type="button" data-toggle="modal" data-target="#viewResponsesModal" onclick="const body = document.getElementById('viewResponsesModalBody'); body.textContent='Loading...'; window.App.tabulateResponses().then(async (table) => {body.innerHTML = ''; body.appendChild(table);});">
-          View Responses
-        </button>
-        <button class="myButton" type="button" data-toggle="modal" data-target="#addQuestionModal">
-          Add Question
-        </button>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-          <span class="navbar-toggler-icon"></span>
-        </button>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <a class="navbar-brand" href="#">affluent.</a>
+      <button class="myButton" id="action" type="button"></button>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
 
-        <div class="collapse navbar-collapse" id="navbarSupportedContent">
-          <ul class="navbar-nav ml-auto">
-            <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                Log In
-              </a>
-              <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown">
-                <a class="dropdown-item" id="studentView" href="#">Students</a>
-                <a class="dropdown-item" id="profView" href="#">Instructors</a>
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav ml-auto">
+          <li class="nav-item dropdown">
+            <a class="nav-link" href="#" id="loginButton" role="button" data-toggle="modal" data-target="#loginModal" aria-haspopup="true" aria-expanded="false">
+              Log In
+            </a>
+            <!--
+            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown">
+              <a class="dropdown-item" id="register" href="#">New Account</a>
+              <a class="dropdown-item" id="login" href="#">Existing Account</a>
+            </div>
+            -->
+          </li>
+
+        </ul>
+
+      </div>
+    </nav>
+
+    <div id="loginModal" class="modal" role="dialog" tabindex="-1">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Welcome</h5>
+            <button type="button" class="close" data-dismiss="modal">
+              <span>&times;</span>
+            </button>
+          </div>
+          <div class="modal-body centered">
+            <div class="centered" id="loginModalNew">
+              <div>
+                <h6>New User</h6>
+                <div>
+                  Click the button below:
+                  <br />
+                  <input id="newUser" type="button" value="New address" />
+                </div>
               </div>
-            </li>
-
-          </ul>
-
-        </div>
-      </nav>
-
-    <div id="viewResponsesModal" class="modal" role="dialog" tabindex="-1">
-      <div class="modal-dialog" role="document">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Responses to questions</h5>
-            <button type="button" class="close" data-dismiss="modal">
-              <span>&times;</span>
-            </button>
-          </div>
-          <div id="viewResponsesModalBody" class="modal-body" style="overflow-x:scroll;">
+            </div>
+            <div class="centered" id="loginModalExisting">
+              <div>
+                <h6>Existing User</h6>
+                <div>
+                  Enter your address:
+                </div>
+                <div>
+                  <input id="existingUserAddress" placeholder="0xfeedbeef..." />
+                </div>
+                <div>
+                  <button id="existingUser" type="button">Log me in</button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
-
-    <div id="addQuestionModal" class="modal" role="dialog" tabindex="-1">
-      <div class="modal-dialog" role="document">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Add a question</h5>
-            <button type="button" class="close" data-dismiss="modal">
-              <span>&times;</span>
-            </button>
-          </div>
-          <div class="modal-body">
-            Question: <input id="addQuestionModalText" autofocus />
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-primary" data-dismiss="modal" onclick="const input = document.getElementById('addQuestionModalText'); window.App.addQuestion(input.value); input.value = '';">
-              Submit
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div id="myElement" draggable="true"></div>
-    <div id="statsViewPort">View feedback statistics...<div>
 
     <!-- Optional JavaScript -->
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->

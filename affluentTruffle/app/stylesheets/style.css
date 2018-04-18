@@ -1,4 +1,46 @@
-#myElement {
+#action {
+  display: none;
+}
+
+#addQuestionModalText {
+  height: 300px;
+  width: 100%;
+}
+
+#existingUserAddress {
+  border: 0px;
+  border-bottom: 2px solid black;
+  width: 80%;
+}
+
+#loginModal .modal-body {
+  overflow-x: hidden;
+  text-align: center;
+}
+
+#loginModalExisting {
+  border-left: 1px solid black;
+}
+
+#loginModalNew {
+  border-right: 1px solid black;
+}
+
+#loginModalExisting,
+#loginModalNew {
+  box-sizing: border-box;
+  display: inline-block;
+  height: 200px;
+  width: 49%;
+}
+
+#loginModalExisting > div > *,
+#loginModalNew > div > * {
+  margin: 10px 0px;
+}
+
+#responseCanvas,
+#summaryView {
   box-sizing: border-box;
   font-size: 5vw;
   height: 100vh;
@@ -13,16 +55,11 @@
   z-index: -1;
 }
 
-#statsViewPort {
-  display: none;
-
-  height: 100vh;
-  font-size: 3vw;
-  padding: 10px;
+.centered {
   text-align: center;
 }
 
-#myElement::after {
+.centered::after {
   content: '';
   display: inline-block;
   height: 100%;
@@ -30,32 +67,32 @@
   width: 0px;
 }
 
-#myElement > * {
+.centered > * {
   display: inline-block;
   vertical-align: middle;
 }
 
 .myButton {
-  -moz-box-shadow:inset 0px 0px 10px -1px #fbafe3;
-  -webkit-box-shadow:inset 0px 0px 10px -1px #fbafe3;
-  box-shadow:inset 0px 0px 10px -1px #fbafe3;
+  -moz-box-shadow:inset 0px 0px 10px -1px rgba(255, 105, 97, 1);
+  -webkit-box-shadow:inset 0px 0px 10px -1px rgba(255, 105, 97, 1);
+  box-shadow:inset 0px 0px 10px -1px rgba(255, 105, 97, 1);
   background-color:transparent;
   -moz-border-radius:6px;
   -webkit-border-radius:6px;
   border-radius:6px;
-  border:1px solid #ee1eb5;
+  border:1px solid rgba(255, 105, 97, 0.5);
   display:inline-block;
   cursor:pointer;
   color:#ffffff;
   font-family:Arial;
   font-size:20px;
   margin: 0px 5px;
-  padding:9px 33px;
+  padding:9px 15px;
   text-decoration:none;
 }
 .myButton:hover {
   background-color:transparent;
-  box-shadow:inset 0px 0px 10px 2px #fbafe3;
+  box-shadow:inset 0px 0px 10px 2px rgba(255, 105, 97, 1);
 }
 .myButton:active {
   position:relative;

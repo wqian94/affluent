@@ -4,11 +4,14 @@ import { default as contract } from 'truffle-contract'
 
 const os = require('os');
 
+{
 // Import our contract artifacts and turn them into usable abstractions.
 const feedback_artifacts = require('../../build/contracts/Feedback.json');
+const accounts_artifacts = require('../../build/contracts/Accounts.json');
 
 // Feedback is our usable abstraction, which we'll use through the code below.
 const Feedback = contract(feedback_artifacts);
+const Accounts = contract(accounts_artifacts);
 const gas = 4712388;  // Gas limit on transactions
 
 // The following code is simple to show off interacting with your contracts.
@@ -17,15 +20,21 @@ const gas = 4712388;  // Gas limit on transactions
 var accounts;
 var account;
 
+// Syntactic sugar for document.getElementById
+const get = function(id) {
+  return document.getElementById(id);
+};
+
 window.App = {
   start: function() {
     var self = this;
 
     // Bootstrap the Feedback abstraction for Use.
     Feedback.setProvider(web3.currentProvider);
+    Accounts.setProvider(web3.currentProvider);
 
     // Get the initial account balance so it can be displayed.
-    web3.eth.getAccounts(function(err, accs) {
+    web3.eth.getAccounts(async (err, accs) => {
       if (err != null) {
         alert("There was an error fetching your accounts.");
         return;
@@ -37,20 +46,91 @@ window.App = {
       }
 
       accounts = accs;
-      account = accounts[0];
 
-      // handler to change to the professor view
-      document.getElementById("profView").addEventListener("click", async (event) => {
-        await window.App.profView();
-      });
-
-      // handler to change to the student view
-      document.getElementById("studentView").addEventListener("click", async (event) => {
-        await window.App.studentView();
-      });
-
-      self.runApp();
+      self.setup(self);
     });
+  },
+  setup: async (self) => {
+    // handler to change to the professor view
+    /*get("profView").addEventListener("click", async (event) => {
+      await window.App.profView();
+    });
+
+    // handler to change to the student view
+    get("studentView").addEventListener("click", async (event) => {
+      await window.App.studentView();
+    });*/
+
+    await self.setupLogin(self);
+
+    get("loginButton").click();
+  },
+  setupLogin: async (self) => {
+    const instance = await Accounts.deployed();
+    const nonce = parseInt(Math.random() * 2 ** 31);
+
+    instance.Account().watch(async (error, result) => {
+      if (!error) {
+        const tx_nonce = result.args.nonce.toNumber();
+        const i = result.args.index.toNumber();
+        if (tx_nonce == nonce) {
+          if (i < accounts.length) {
+            get("newUser").type = "text";
+            get("newUser").value = accounts[i];
+            get("newUser").removeAttribute("disabled");
+            get("newUser").setAttribute("readonly", "");
+            get("newUser").style.backgroundColor = "transparent";
+            get("newUser").style.border = "0px";
+            get("newUser").style.color = "rgba(0, 0, 0, 0.6)";
+            get("newUser").style.textAlign = "center";
+            get("newUser").style.width = "100px";
+            get("newUser").setSelectionRange(0, accounts[i].length);
+            get("newUser").parentNode.childNodes[0].textContent =
+              "Your address is:";
+          } else {
+            get("newUser").value = "Unavailable";
+            alert("This class has reached its maximum capacity. " +
+                  "Please contact the instructor for help.");
+          }
+        }
+      }
+    });
+
+    const newUser_click = async (event) => {
+      get("newUser").removeEventListener("click", newUser_click);
+      get("newUser").setAttribute("disabled", "");
+      instance.newAccount(nonce, {from: accounts[0], gas: gas});
+    };
+    get("newUser").addEventListener("click", newUser_click);
+
+    get("existingUser").addEventListener("click", async (event) => {
+      const address = get("existingUserAddress").value;
+      var found = false;
+      for (const acc of accounts) {
+        if (address == acc) {
+          account = address;
+          get("existingUserAddress").value = "";
+          get("loginModal").click();
+          found = true;
+          self.launch(self);
+          break;
+        }
+      }
+      if (!found) {
+        alert(`"${address}" is not a registered address. Please try again.`);
+      }
+    });
+  },
+  launch: async (self) => {
+    const ele = document.createElement("div");
+    ele.className = "centered";
+    ele.id = "summaryView";
+    document.body.appendChild(ele);
+    if (account == accounts[0]) {
+      self.launchInstructor(self);
+    } else {
+      self.launchStudent(self);
+    }
   },
   addQuestion: async (text) => {
     const instance = await Feedback.deployed();
@@ -126,12 +206,86 @@ window.App = {
     ele.style.display = "";
     view.style.display = "none";
   },
-  runApp: async () => {
+  launchInstructor: async (self) => {
     const instance = await Feedback.deployed();
 
-    const buffer = Math.max(50, 0.05 * window.screen.width);
-    const ele = document.getElementById("myElement");
+    get("action").textContent = "Add Questions";
+    get("action").style.display = "inline-block";
+    get("action").setAttribute("data-toggle", "modal");
+    get("action").setAttribute("data-target", "#addQuestionModal");
 
+    const modal = document.createElement("div");
+    modal.className = "modal";
+    modal.id = "addQuestionModal";
+    modal.setAttribute("role", "dialog");
+    modal.setAttribute("tabindex", "-1");
+    modal.innerHTML =
+      '<div class="modal-dialog" role="document">' +
+        '<div class="modal-content">' +
+          '<div class="modal-header">' +
+            '<h5 class="modal-title">Adding questions</h5>' +
+            '<button type="button" class="close" data-dismiss="modal"' +
+              '<span>&times;</span>' +
+            '</button>' +
+          '</div>' +
+          '<div class="modal-body">' +
+            '<div>Add any number of questions, separated by a newline</div>' +
+            '<div>' +
+              '<textarea id="addQuestionModalText" autofocus></textarea>' +
+            '</div>' +
+          '</div>' +
+          '<div class="modal-footer">' +
+            '<button class="btn btn-primary" data-dismiss="modal" ' +
+                'id="addQuestionModalSubmit" type="button">' +
+              'Submit' +
+            '</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(modal);
+
+    get("addQuestionModalSubmit").addEventListener("click", async (event) => {
+      const questions = get("addQuestionModalText").value.split("\n");
+      for (const q of questions) {
+        if (q.length) {
+          self.addQuestion(q);
+        }
+      }
+    });
+
+    get("summaryView").style.display = "block";
+  },
+  launchStudent: async (self) => {
+    const instance = await Feedback.deployed();
+
+    const actionResponseString = "See Questions";
+    const actionSummaryString = "View Summary";
+    get("action").textContent = actionSummaryString;
+    get("action").style.display = "inline-block";
+
+    const ele = document.createElement("div");
+    ele.className = "centered";
+    ele.id = "responseCanvas";
+    ele.setAttribute("draggable", "true");
+    document.body.appendChild(ele);
+
+    const actionToResponse = async (event) => {  // Toggles the response view on
+      get("action").removeEventListener("click", actionToResponse);
+      get("summaryView").style.display = "none";
+      get("responseCanvas").style.display = "block";
+      get("action").textContent = actionSummaryString;
+      get("action").addEventListener("click", actionToSummary);
+    };
+    const actionToSummary = async (event) => {  // Toggles the summary view on
+      get("action").removeEventListener("click", actionToSummary);
+      get("responseCanvas").style.display = "none";
+      get("summaryView").style.display = "block";
+      get("action").textContent = actionResponseString;
+      get("action").addEventListener("click", actionToResponse);
+    };
+    get("action").addEventListener("click", actionToSummary);
+
+    const buffer = Math.max(50, 0.05 * window.screen.width);
     var originX = null;
     var qnum = null;
 
@@ -259,3 +413,4 @@ window.addEventListener('load', function() {
 
   App.start();
 });
+}
