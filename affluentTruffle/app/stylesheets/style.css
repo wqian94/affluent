@@ -61,6 +61,8 @@
 
 #summaryView {
   display: none;
+  overflow-x: hidden;
+  overflow-y: scroll;
 }
 
 .centered {
