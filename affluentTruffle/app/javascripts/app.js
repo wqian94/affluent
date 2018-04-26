@@ -503,7 +503,7 @@ window.App = {
     await instance.enrollStudent(account, course, {from: accounts[0], gas: gas});
     self.viewMyInstructors(self);
   },
-  // function for viewing info of all registered courses for a student
+  // function for rendering all course info of a given address in a div
   renderCourseInfo: async (self, course_addr, instance, enroll=false) => {
     let name = await instance.getName.call(course_addr);
     let course = await instance.getCourse.call(course_addr);
@@ -544,6 +544,7 @@ window.App = {
     $(allInstructors).click(async (event) => {
       self.viewAllInstructors(self);
     });
+    $("#miscContent").append("<h2>My Courses</h2>");
     $("#miscContent").append(allInstructors);
 
     const instance = await Accounts.deployed();
@@ -564,6 +565,7 @@ window.App = {
     $(myInstructors).click(async (event) => {
       self.viewMyInstructors(self);
     });
+    $("#miscContent").append("<h2>All Instructors</h2>");
     $("#miscContent").append(myInstructors);
 
     const instance = await Accounts.deployed();
