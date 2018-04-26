@@ -15,13 +15,26 @@ const Accounts = contract(accounts_artifacts);
 
 const gas = 4712388;  // Gas limit on transactions
 
-var feedbackContracts = [];
+var feedbackContracts = {};
 
 // The following code is simple to show off interacting with your contracts.
 // As your needs grow you will likely need to change its form and structure.
 // For application bootstrapping, check out window.addEventListener below.
 var accounts;
 var account;
+
+var isAddress = function (address) {
+    if (!/^(0x)?[0-9a-f]{40}$/i.test(address)) {
+        // check if it has the basic requirements of an address
+        return false;
+    } else if (/^(0x)?[0-9a-f]{40}$/.test(address) || /^(0x)?[0-9A-F]{40}$/.test(address)) {
+        // If it's all small caps or all all caps, return true
+        return true;
+    } else {
+        // Otherwise check each case
+        return isChecksumAddress(address);
+    }
+};
 
 // Syntactic sugar for document.getElementById
 const get = function(id) {
@@ -117,8 +130,11 @@ window.App = {
             get("newUser").parentNode.childNodes[0].textContent =
               "Your address is:";
             console.log("Enrolled new student, " + i);
+            instance.registerStudent(accounts[i], {from: accounts[0], gas: gas});
+/*
             (await Feedback.deployed()).newEnrollment(
               accounts[i], {from: accounts[0], gas: gas});
+*/
           }
         } else {
           get("newUser").value = "Unavailable";
@@ -190,21 +206,37 @@ window.App = {
     get("newUser").addEventListener("click", newUser_click);
     get("newInstructor").addEventListener("click", newInstructor_click);
     get("submitInstructorInfo").addEventListener("click", submitInstructorInfo);
+    // set enter key to submit instructor registration
+    get("instructorRegistration").addEventListener("keydown", async (event) => {
+      if ("Enter" == event.key) {
+        get("submitInstructorInfo").click();
+      }
+    });
+
     get("returnToLogin").addEventListener("click", async (event) => { 
       $("#instructorModal").modal("hide"); $("#loginModal").modal("show"); });
 
+    // binding login function to log in button
     get("existingUser").addEventListener("click", async (event) => {
       const address = get("existingUserAddress").value;
-      var found = false;
-      if (address == accounts[0] ||
-          await (await Feedback.deployed()).isEnrolled.call(address)) {
-        account = address;
-        get("existingUserAddress").value = "";
-        $("#loginModal").modal("hide");
-        found = true;
-        self.launch(self);
+      if (isAddress(address)) {
+        var isStudent = await instance.isStudent.call(address);
+        var isInstructor = await instance.isInstructor.call(address);
+        console.log(isStudent, isInstructor);
+        if (isStudent || isInstructor) {
+          get("existingUserAddress").value = "";
+          $("#loginModal").modal("hide");
+          account = address;
+        }
+        if (isStudent) {
+          self.launch(self, "student");
+        } else if (isInstructor) {
+          self.launch(self, "instructor");
+        } else {
+          alert(`"${address}" is not a registered address. Please try again.`);
+        }
       } else {
-        alert(`"${address}" is not a registered address. Please try again.`);
+        alert(`You must enter a valid Ethereum public address.`);
       }
     });
     get("existingUserAddress").addEventListener("keydown", async (event) => {
@@ -257,11 +289,11 @@ window.App = {
       qnum++;
     }
   },
-  launch: async (self) => {
+  launch: async (self, type) => {
     self.launchSummary(self);
-    if (account == accounts[0]) {
+    if (type == "instructor") {
       self.launchInstructor(self);
-    } else {
+    } else if (type == "student") {
       self.launchStudent(self);
     }
   },
