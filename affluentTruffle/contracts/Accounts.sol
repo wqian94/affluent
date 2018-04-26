@@ -36,6 +36,18 @@ contract Accounts {
     studentRegistered[addr] = true;
   }
 
+  function enrollStudent(address student, address course) {
+    uint crownumber = courseEnrollments[course].length;
+    courseEnrollments[course].length++;
+
+    courseEnrollments[course][crownumber] = student;
+
+    uint srownumber = studentCourses[student].length;
+    studentCourses[student].length++;
+
+    studentCourses[student][srownumber] = course;
+  }
+
   function registerInstructor(string name, string course, string email, address addr) public {
     uint rownumber = instructorList.length;
     instructorList.length++;
@@ -49,6 +61,11 @@ contract Accounts {
     newInfo.email = email;
 
     instructorContracts[addr] = address(0);
+  }
+
+  // view functions and calls that do not change the contract state
+  function getStudentCourses(address addr) returns(address[]) {
+    return studentCourses[addr];
   }
 
   function getName(address addr) public view returns(string) {

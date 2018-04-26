@@ -295,7 +295,8 @@ window.App = {
       self.launchInstructor(self);
     } else if (type == "student") {
       //self.launchStudent(self);
-      self.viewInstructorsInfo(self);
+      //self.viewAllInstructors(self);
+      self.viewMyInstructors(self);
     }
   },
   launchInstructor: async (self) => {
@@ -494,35 +495,85 @@ window.App = {
     }
     show_question();
   },
-  viewInstructorsInfo: async (self) => {
+  // enroll the student account in a new course/instructor address
+  enrollInCourse: async(self, course) => {
+    console.log(course);
+    console.log(account);
     const instance = await Accounts.deployed();
+    await instance.enrollStudent(account, course, {from: accounts[0], gas: gas});
+    self.viewMyInstructors(self);
+  },
+  // function for viewing info of all registered courses for a student
+  renderCourseInfo: async (self, course_addr, instance, enroll=false) => {
+    let name = await instance.getName.call(course_addr);
+    let course = await instance.getCourse.call(course_addr);
+    let email = await instance.getEmail.call(course_addr);
+
+    var new_info = $("<div></div>", {"class": "courseInfo"});
+    var name_div = $("<h3></h3>", {"text": name});
+    var course_div = $("<h5></h5>", {"text": course});
+    var email_div = $("<h5></h5>", {"text": email});
+
+    var buttons_holder = $("<div></div>");
+    var latest_btn = $("<button></button>", {"text": "Latest Feedback"}); 
+    var feedback_btn = $("<button></button>", {"text": "View Feedback"}); 
+
+    if (enroll) {
+      var enroll_btn = $("<button></button>", {"text": "Enroll"});
+      $(enroll_btn).click(async (event) => {
+        self.enrollInCourse(self, course_addr);
+      });
+
+      buttons_holder.append(enroll_btn)
+    }
+
+    buttons_holder.append(latest_btn).append(feedback_btn);
+
+    new_info.append(name_div).append(course_div).append(email_div);
+    new_info.append(buttons_holder);
+
+    $("#miscContent").append(new_info);
+    console.log(course_addr);
+    console.log(name, course, email);
+  },
+  viewMyInstructors: async(self) => {
     $("#miscContent").empty();
 
+    
+    var allInstructors = $("<button></button>", {"text": "All Instructors"}); 
+    $(allInstructors).click(async (event) => {
+      self.viewAllInstructors(self);
+    });
+    $("#miscContent").append(allInstructors);
+
+    const instance = await Accounts.deployed();
+
+    var enrolled_addresses = await instance.getStudentCourses.call(account);
+    console.log(enrolled_addresses);
+    enrolled_addresses.forEach(async (course_addr) => {
+      self.renderCourseInfo(self, course_addr, instance);
+    });
+    console.log(enrolled_addresses);
+
+  },
+  // function for viewing all registered instructor info
+  viewAllInstructors: async (self) => {
+    $("#miscContent").empty();
+
+    var myInstructors = $("<button></button>", {"text": "My Courses"}); 
+    $(myInstructors).click(async (event) => {
+      self.viewMyInstructors(self);
+    });
+    $("#miscContent").append(myInstructors);
+
+    const instance = await Accounts.deployed();
+
+    var enrolled_addresses = await instance.getStudentCourses.call(account);
     var instructor_num = Number(await instance.instructorsCount.call());
     for (let i = 0; i < instructor_num; i++ ) {
       let this_addr = await instance.instructorAddrByID.call(i);
-      let name = await instance.getName.call(this_addr);
-      let course = await instance.getCourse.call(this_addr);
-      let email = await instance.getEmail.call(this_addr);
-
-      var new_info = $("<div></div>", {"class": "courseInfo"});
-      var name_div = $("<h3></h3>", {"text": name});
-      var course_div = $("<h5></h5>", {"text": course});
-      var email_div = $("<h5></h5>", {"text": email});
-
-      var buttons_holder = $("<div></div>");
-      var enroll_btn = $("<button></button>", {"text": "Enroll"}); 
-      var latest_btn = $("<button></button>", {"text": "Latest Feedback"}); 
-      var feedback_btn = $("<button></button>", {"text": "View Feedback"}); 
-
-      buttons_holder.append(enroll_btn).append(latest_btn).append(feedback_btn);
-
-      new_info.append(name_div).append(course_div).append(email_div);
-      new_info.append(buttons_holder);
-
-      $("#miscContent").append(new_info);
-      console.log(this_addr);
-      console.log(name, course, email);
+      let enrolled = (enrolled_addresses.indexOf(this_addr) == -1) ? true : false;
+      self.renderCourseInfo(self, this_addr, instance, enrolled);
     }
   },
   launchSummary: async (self) => {
