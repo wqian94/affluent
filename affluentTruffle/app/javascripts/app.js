@@ -294,7 +294,8 @@ window.App = {
     if (type == "instructor") {
       self.launchInstructor(self);
     } else if (type == "student") {
-      self.launchStudent(self);
+      //self.launchStudent(self);
+      self.viewInstructorsInfo(self);
     }
   },
   launchInstructor: async (self) => {
@@ -492,6 +493,37 @@ window.App = {
       });
     }
     show_question();
+  },
+  viewInstructorsInfo: async (self) => {
+    const instance = await Accounts.deployed();
+    $("#miscContent").empty();
+
+    var instructor_num = Number(await instance.instructorsCount.call());
+    for (let i = 0; i < instructor_num; i++ ) {
+      let this_addr = await instance.instructorAddrByID.call(i);
+      let name = await instance.getName.call(this_addr);
+      let course = await instance.getCourse.call(this_addr);
+      let email = await instance.getEmail.call(this_addr);
+
+      var new_info = $("<div></div>", {"class": "courseInfo"});
+      var name_div = $("<h3></h3>", {"text": name});
+      var course_div = $("<h5></h5>", {"text": course});
+      var email_div = $("<h5></h5>", {"text": email});
+
+      var buttons_holder = $("<div></div>");
+      var enroll_btn = $("<button></button>", {"text": "Enroll"}); 
+      var latest_btn = $("<button></button>", {"text": "Latest Feedback"}); 
+      var feedback_btn = $("<button></button>", {"text": "View Feedback"}); 
+
+      buttons_holder.append(enroll_btn).append(latest_btn).append(feedback_btn);
+
+      new_info.append(name_div).append(course_div).append(email_div);
+      new_info.append(buttons_holder);
+
+      $("#miscContent").append(new_info);
+      console.log(this_addr);
+      console.log(name, course, email);
+    }
   },
   launchSummary: async (self) => {
     const instance = await Feedback.deployed();

@@ -4,26 +4,30 @@ contract Accounts {
   uint index = 1;
 
   struct instructorInfo {
-    bytes name;
-    bytes course;
-    bytes email;
+    uint instructorID;
+    string name;
+    string course;
+    string email;
   }
 
   mapping (address => bool) public studentRegistered;
-  mapping (address => instructorInfo) public instructorList;
+  mapping (address => instructorInfo) public instructorsInfo;
+  address[] instructorList;
+  
 
   mapping (address => address) instructorContracts;
   mapping (address => address[]) courseEnrollments;
+  mapping (address => address[]) studentCourses;
 
   event Student(uint nonce, uint index);
-  event Instructor(uint nonce, uint index, bytes name, bytes course, bytes email);
+  event Instructor(uint nonce, uint index, string name, string course, string email);
 
   function newStudent(uint nonce) public {
     uint i = index++;
     emit Student(nonce, i);
   }
 
-  function newInstructor(uint nonce, bytes name, bytes course, bytes email) public {
+  function newInstructor(uint nonce, string name, string course, string email) public {
     uint i = index++;
     emit Instructor(nonce, i, name, course, email);
   }
@@ -32,9 +36,14 @@ contract Accounts {
     studentRegistered[addr] = true;
   }
 
-  function registerInstructor(bytes name, bytes course, bytes email, address addr) public {
-    instructorInfo storage newInfo = instructorList[addr];
+  function registerInstructor(string name, string course, string email, address addr) public {
+    uint rownumber = instructorList.length;
+    instructorList.length++;
+    instructorList[rownumber] = addr;
 
+    instructorInfo storage newInfo = instructorsInfo[addr];
+
+    newInfo.instructorID = rownumber;
     newInfo.name = name;
     newInfo.course = course;
     newInfo.email = email;
@@ -42,13 +51,35 @@ contract Accounts {
     instructorContracts[addr] = address(0);
   }
 
+  function getName(address addr) public view returns(string) {
+    return instructorsInfo[addr].name;
+  }
+  function getCourse(address addr) public view returns(string) {
+    return instructorsInfo[addr].course;
+  }
+  function getEmail(address addr) public view returns(string) {
+    return instructorsInfo[addr].email;
+  }
+
+  function instructorsCount() public constant returns (uint count) {
+    return instructorList.length;
+  }
+
+  function instructorAddrByID(uint id) public view returns(address) { 
+    return instructorList[id];
+  }
+
   function isStudent(address addr) public view returns (bool) {
     return studentRegistered[addr];
   }
 
   function isInstructor(address addr) public view returns (bool) {
-    instructorInfo storage thisInfo = instructorList[addr];
-    if (thisInfo.name.length > 0 && thisInfo.course.length > 0 && thisInfo.email.length > 0) {
+    instructorInfo storage thisInfo = instructorsInfo[addr];
+    bytes memory nameBytes = bytes(thisInfo.name);
+    bytes memory courseBytes = bytes(thisInfo.course);
+    bytes memory emailBytes = bytes(thisInfo.email);
+
+    if (nameBytes.length > 0 && courseBytes.length > 0 && emailBytes.length > 0) {
       return true;
     } else {
       return false;
