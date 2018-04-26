@@ -10,12 +10,17 @@ contract Accounts {
     string email;
   }
 
+  // mapping for checking valid addresses in login
   mapping (address => bool) public studentRegistered;
   mapping (address => instructorInfo) public instructorsInfo;
+  // list of all instructors
   address[] instructorList;
   
-
+  // mapping of instructors to their deployed contracts
   mapping (address => address) instructorContracts;
+
+  // mappings of all students in a course and a second mapping for
+  // all courses of each student
   mapping (address => address[]) courseEnrollments;
   mapping (address => address[]) studentCourses;
 
@@ -32,22 +37,27 @@ contract Accounts {
     emit Instructor(nonce, i, name, course, email);
   }
 
+  // register student for student login
   function registerStudent(address addr) public {
     studentRegistered[addr] = true;
   }
 
   function enrollStudent(address student, address course) {
+    // add student address to the course roster
     uint crownumber = courseEnrollments[course].length;
     courseEnrollments[course].length++;
 
     courseEnrollments[course][crownumber] = student;
 
+    // add course address to the student's personal list
     uint srownumber = studentCourses[student].length;
     studentCourses[student].length++;
 
     studentCourses[student][srownumber] = course;
   }
 
+  // register an instructor account for login validation and 
+  // information retrieval 
   function registerInstructor(string name, string course, string email, address addr) public {
     uint rownumber = instructorList.length;
     instructorList.length++;
@@ -64,6 +74,7 @@ contract Accounts {
   }
 
   // view functions and calls that do not change the contract state
+
   function getStudentCourses(address addr) returns(address[]) {
     return studentCourses[addr];
   }

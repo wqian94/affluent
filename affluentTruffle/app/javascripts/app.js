@@ -221,8 +221,12 @@ window.App = {
       const address = get("existingUserAddress").value;
       if (isAddress(address)) {
         var isStudent = await instance.isStudent.call(address);
-        var isInstructor = await instance.isInstructor.call(address);
-        console.log(isStudent, isInstructor);
+        var isInstructor = false;
+        if (!isStudent) {
+          isInstructor = await instance.isInstructor.call(address);
+        }
+
+        //console.log(isStudent, isInstructor);
         if (isStudent || isInstructor) {
           get("existingUserAddress").value = "";
           $("#loginModal").modal("hide");
@@ -497,8 +501,6 @@ window.App = {
   },
   // enroll the student account in a new course/instructor address
   enrollInCourse: async(self, course) => {
-    console.log(course);
-    console.log(account);
     const instance = await Accounts.deployed();
     await instance.enrollStudent(account, course, {from: accounts[0], gas: gas});
     self.viewMyInstructors(self);
@@ -533,8 +535,6 @@ window.App = {
     new_info.append(buttons_holder);
 
     $("#miscContent").append(new_info);
-    console.log(course_addr);
-    console.log(name, course, email);
   },
   viewMyInstructors: async(self) => {
     $("#miscContent").empty();
@@ -550,11 +550,9 @@ window.App = {
     const instance = await Accounts.deployed();
 
     var enrolled_addresses = await instance.getStudentCourses.call(account);
-    console.log(enrolled_addresses);
     enrolled_addresses.forEach(async (course_addr) => {
       self.renderCourseInfo(self, course_addr, instance);
     });
-    console.log(enrolled_addresses);
 
   },
   // function for viewing all registered instructor info
