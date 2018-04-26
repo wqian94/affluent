@@ -59,6 +59,53 @@
   z-index: -1;
 }
 
+#newUser, #newInstructor {
+  margin-top: 10px;
+}
+
+#instructorModal {
+  min-height: 100vh;
+  width: 100%;
+}
+
+#instructorRegHolder {
+  margin: 40px auto;
+  padding: 10px;
+
+  width: 55%;
+}
+
+#instructorRegistration {
+  display: flex;
+
+  flex-flow: column wrap;
+  align-items: center;
+
+  margin: 0 auto;
+  height: 100%;
+  width: 75%
+}
+
+#instructorRegistration input {
+  width: 65%;
+  margin-bottom: 5px;
+}
+
+.label {
+  margin-left: 17.5%;
+  align-self: flex-start;
+}
+
+#instructorRegistration button {
+  width: 40%;
+  font-size: 16px;
+  margin-top: 12px;
+}
+
+#regWarning {
+  margin-top 10px;
+}
+
 #summaryView {
   display: none;
   overflow-x: hidden;

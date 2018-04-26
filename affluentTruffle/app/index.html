@@ -48,10 +48,10 @@
             <div class="centered" id="loginModalNew">
               <div>
                 <h6>New User</h6>
-                <div>
-                  Click the button below:
-                  <br />
-                  <input id="newUser" type="button" value="New address" />
+                <div class="newAccounts">
+                  <span>Click the button below:<span>
+                  <input id="newUser" type="button" value="New Student" />
+                  <input id="newInstructor" type="button" value="New Instructor" />
                 </div>
               </div>
             </div>
@@ -69,6 +69,26 @@
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="instructorModal" class="modal" role="dialog" tabindex="-1">
+      <div id="instructorRegHolder" class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Instructor Info</h5>
+          <button type="button" class="close" data-dismiss="modal">
+            <span>&times;</span>
+          </button>
+        </div>
+        <div class="modal-body centered">
+          <div id="instructorRegistration">
+            <div class="label">Name: </div><input id="instructorName"></input>
+            <div class="label">Course: </div><input id="instructorCourse"></input>
+            <div class="label">Email: </div><input id="instructorEmail"></input>
+            <div id="regWarning"></div>
+            <button id="submitInstructorInfo" type="button">Register</button>
+            <button id="returnToLogin" type="button">Log In</button>
           </div>
         </div>
       </div>

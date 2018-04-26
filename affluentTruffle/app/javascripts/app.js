@@ -12,7 +12,10 @@ const accounts_artifacts = require('../../build/contracts/Accounts.json');
 // Feedback is our usable abstraction, which we'll use through the code below.
 const Feedback = contract(feedback_artifacts);
 const Accounts = contract(accounts_artifacts);
+
 const gas = 4712388;  // Gas limit on transactions
+
+var feedbackContracts = [];
 
 // The following code is simple to show off interacting with your contracts.
 // As your needs grow you will likely need to change its form and structure.
@@ -77,6 +80,8 @@ window.App = {
       }
 
       accounts = accs;
+      console.log("Account 0 address:");
+      console.log(accounts[0]);
 
       self.setup(self);
     });
@@ -88,9 +93,12 @@ window.App = {
   },
   setupLogin: async (self) => {
     const instance = await Accounts.deployed();
+    console.log("Account contract instance address:");
+    console.log(instance.address);
     const nonce = parseInt(Math.random() * 2 ** 31);
 
-    instance.Account().watch(async (error, result) => {
+    // listener for the student event
+    instance.Student().watch(async (error, result) => {
       if (!error) {
         const tx_nonce = result.args.nonce.toNumber();
         const i = result.args.index.toNumber();
@@ -108,13 +116,39 @@ window.App = {
             get("newUser").setSelectionRange(0, accounts[i].length);
             get("newUser").parentNode.childNodes[0].textContent =
               "Your address is:";
+            console.log("Enrolled new student, " + i);
             (await Feedback.deployed()).newEnrollment(
               accounts[i], {from: accounts[0], gas: gas});
-          } else {
-            get("newUser").value = "Unavailable";
-            alert("This class has reached its maximum capacity. " +
-                  "Please contact the instructor for help.");
           }
+        } else {
+          get("newUser").value = "Unavailable";
+          alert("This class has reached its maximum capacity. " +
+                "Please contact the instructor for help.");
+        }
+      }
+    });
+
+    // listener for the instructor event
+    instance.Instructor().watch(async (error, result) => {
+      if (!error) {
+        const tx_nonce = result.args.nonce.toNumber();
+        const i = result.args.index.toNumber();
+        const name = result.args.name;
+        const course = result.args.course;
+        const email = result.args.email;
+        if (tx_nonce == nonce) {
+          if (i < accounts.length) {
+            console.log(accounts[i]);
+            // display the new address then register the info into the main smart contract
+            $("#regWarning").text("Save this account address for log in: " + accounts[i]);
+            $("#submitInstructorInfo").hide()
+            console.log("registered new instructor, " + i);
+            instance.registerInstructor(name, course, email, accounts[i], {from: accounts[0], gas: gas});
+          }
+        } else {
+          get("newUser").value = "Unavailable";
+          alert("This class has reached its maximum capacity. " +
+                "Please contact the instructor for help.");
         }
       }
     });
@@ -126,9 +160,38 @@ window.App = {
     const newUser_click = async (event) => {
       get("newUser").removeEventListener("click", newUser_click);
       get("newUser").setAttribute("disabled", "");
-      instance.newAccount(nonce, {from: accounts[0], gas: gas});
+      instance.newStudent(nonce, {from: accounts[0], gas: gas});
     };
+
+    // function for registering new instructors with the main contract
+    const newInstructor_click = async(event) => {
+      $("#loginModal").modal("hide");
+      $("#instructorModal").modal("show");
+    };
+
+    // handler for the instructor registration form
+    const submitInstructorInfo = async(event) => {
+      var name = $("#instructorName").val();
+      var course = $("#instructorCourse").val();
+      var email = $("#instructorEmail").val();
+
+      if (name.split(" ").filter(x => x != "").length < 2) {
+        $("#regWarning").text("Please enter your full name.");
+      } else if (!course) {
+        $("#regWarning").text("Please enter your course.");
+      } else if (!email) {
+        $("#regWarning").text("Please enter your official email for verification.");
+      } else {
+        $("#regWarning").text("Submitting registration, please wait...");
+        instance.newInstructor(nonce, name, course, email, {from: accounts[0], gas: gas});
+      }
+    };
+
     get("newUser").addEventListener("click", newUser_click);
+    get("newInstructor").addEventListener("click", newInstructor_click);
+    get("submitInstructorInfo").addEventListener("click", submitInstructorInfo);
+    get("returnToLogin").addEventListener("click", async (event) => { 
+      $("#instructorModal").modal("hide"); $("#loginModal").modal("show"); });
 
     get("existingUser").addEventListener("click", async (event) => {
       const address = get("existingUserAddress").value;
@@ -185,7 +248,7 @@ window.App = {
           1 + i * qnum * .1 + Math.sqrt(i + qnum))));
       }
       if (r[1] + r[2] > 0) {
-        console.log(r);
+        //console.log(r);
         data[today] = self.ratioToPercent(r[2] / (r[1] + r[2]));
       } else {
         data[today] = 0.0;
@@ -204,6 +267,8 @@ window.App = {
   },
   launchInstructor: async (self) => {
     const instance = await Feedback.deployed();
+    console.log("Feedback contract instance address, launching instructor:");
+    console.log(instance.address);
 
     get("action").textContent = "Add Questions";
     get("action").style.display = "inline-block";
@@ -258,6 +323,8 @@ window.App = {
   },
   launchStudent: async (self) => {
     const instance = await Feedback.deployed();
+    console.log("Feedback contract instance address, launching student:");
+    console.log(instance.address);
 
     const actionResponseString = "See Questions";
     const actionSummaryString = "View Summary";
@@ -308,7 +375,7 @@ window.App = {
     };
 
     const drag = function(event) {
-      console.log(event.screenX, window.innerWidth, originX);
+      //console.log(event.screenX, window.innerWidth, originX);
       const x = getDefined(
         function() { return event.screenX; },
         function() { return event.changedTouches[0].pageX; });
