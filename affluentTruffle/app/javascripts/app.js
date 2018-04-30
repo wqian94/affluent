@@ -31,7 +31,7 @@ const os = require('os');
   //
   //////////////////////////////////////////////////////////////////////////////
 
-  var account;
+  var accounts;
   var app;
   const gas = 4712388;  // Gas limit on transactions
   const instances = {};
@@ -93,6 +93,11 @@ const os = require('os');
     return document.getElementById(id);
   };
 
+  // Returns whether the given address is among the list of accounts
+  const isMyAccount = function(address) {
+    return 0 <= accounts.indexOf(address);
+  };
+
   // Data in {day: ratio} form
   const makePlotQuestion = function(text, data) {
     const q = {
@@ -108,26 +113,6 @@ const os = require('os');
       q.y.push(data[day]);
     }
     return q;
-  };
-
-  const selectAccount = async (accounts) => {
-    const modal = createModal(
-      'Select your account', '<div id="accountSelectorBody"></div>');
-    modal.id = 'accountSelector';
-    document.body.appendChild(modal);
-    const modalBody = get('accountSelectorBody');
-    for (const acc of accounts) {
-      const b = document.createElement('button');
-      b.textContent = acc;
-      b.addEventListener('click', async (event) => {
-        $(modal).modal('hide');
-        modal.parentNode.removeChild(modal);
-        account = acc;
-        setup();
-      });
-      modalBody.appendChild(b);
-    }
-    $(modal).modal('show');
   };
 
   const setup = async () => {
@@ -152,7 +137,7 @@ const os = require('os');
     view.innerHTML = '';
 
     // Admin UI
-    if ((await instances.Affluent.admin()) == account) {
+    if (isMyAccount(await instances.Affluent.admin())) {
       view.innerHTML += '<div class="modal-dialog">' +
         '<div class="modal-content">' +
           '<div class="modal-header">' +
@@ -170,17 +155,26 @@ const os = require('os');
     const numClasses = await instances.Affluent.numClasses.call();
     for (var i = 0; i < numClasses; i++) {
       const cls = await instances.Affluent.getClass.call(i);
-      if ((await cls.getInstructor.call()) == account) {
+      if (isMyAccount(await cls.getInstructor.call())) {
         allTaughtClasses.push(cls);
       }
-      if (await cls.isEnrolled.call(account)) {
-        allEnrolledClasses.push(cls);
+      for (const acct of accounts) {
+        if (await cls.isEnrolled.call(acct)) {
+          allEnrolledClasses.push(cls);
+        }
       }
     }
 
     // Instructor UI
-    if ((await instances.Affluent.admin()) == account) {
-      const currentClass = await instances.Affluent.getClassOf.call(account);
+    if (allTaughtClasses.length) {
+      const currentClasses = [];
+      for (const acct of accounts) {
+        const cls = await instances.Affluent.getClassOf.call(acct);
+        if (cls) {
+          currentClasses.push(cls);
+        }
+      }
+
       // Use allTaughtClasses to list classes
       view.innerHTML += '<div class="modal-dialog">' +
         '<div class="modal-content">' +
@@ -194,7 +188,7 @@ const os = require('os');
     }
 
     // Student UI
-    if ((await instances.Affluent.admin()) == account) {
+    if (allEnrolledClasses.length) {
       // Use allEnrolledClasses to list classes
       view.innerHTML += '<div class="modal-dialog">' +
         '<div class="modal-content">' +
@@ -249,12 +243,8 @@ const os = require('os');
           return;
         }
 
-        if (accs.length > 1) {
-          selectAccount(accs);
-        } else {
-          account = accs[0];
-          setup();
-        }
+        accounts = accs;
+        setup();
       });
     },
     addQuestion: async (text) => {
