@@ -25,54 +25,11 @@
       <div class="collapse navbar-collapse" id="navbarSupportedContent">
         <ul class="navbar-nav ml-auto">
           <li class="nav-item dropdown">
-            <a class="nav-link" href="#" id="loginButton" role="button" data-toggle="modal" data-target="#loginModal" aria-haspopup="true" aria-expanded="false">
-              Log In
-            </a>
+            <div class="nav-link" id="identity"></div>
           </li>
-
         </ul>
-
       </div>
     </nav>
-
-    <div id="loginModal" class="modal" role="dialog" tabindex="-1">
-      <div class="modal-dialog" role="document">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Welcome</h5>
-            <button type="button" class="close" data-dismiss="modal">
-              <span>&times;</span>
-            </button>
-          </div>
-          <div class="modal-body centered">
-            <div class="centered" id="loginModalNew">
-              <div>
-                <h6>New User</h6>
-                <div>
-                  Click the button below:
-                  <br />
-                  <input id="newUser" type="button" value="New address" />
-                </div>
-              </div>
-            </div>
-            <div class="centered" id="loginModalExisting">
-              <div>
-                <h6>Existing User</h6>
-                <div>
-                  Enter your address:
-                </div>
-                <div>
-                  <input id="existingUserAddress" placeholder="0xfeedbeef..." />
-                </div>
-                <div>
-                  <button id="existingUser" type="button">Log me in</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <!-- Optional JavaScript -->
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->

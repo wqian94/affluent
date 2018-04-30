@@ -5,7 +5,7 @@
  * classes.
  */
 
-pragma solidity ^0.4.21;
+pragma solidity ^0.4.23;
 
 import './Class.sol';
 
@@ -18,14 +18,21 @@ contract Affluent {
   // (n - 1) instructor=>address mappings for that address.
   mapping (address => uint8) private states;
 
+  address public admin;
+
   // A list of all classes.
   Class[] classes;
 
-  // Activates a mapping from the instructor (message sender) to the given
-  // contract address; overwrites any previous mappings for the sender.
-  function activate(Class class) public {
-    deactivate();
-    actives[msg.sender] = class;
+  constructor() public {
+    admin = msg.sender;
+  }
+
+  // Activates a mapping from an instructor to the given contract address;
+  // overwrites any previous mappings for the sender.
+  function activate(address instructor, Class class) public {
+    require(msg.sender == admin);
+    deactivate(instructor);
+    actives[instructor] = class;
     if (0 == states[class]) {
       classes.push(class);
       states[class] = 1;
@@ -34,11 +41,12 @@ contract Affluent {
   }
 
   // Deactivates the current instructor association.
-  function deactivate() public {
-    if (states[actives[msg.sender]] > 0) {
-      states[actives[msg.sender]]--;
+  function deactivate(address instructor) public {
+    require(msg.sender == admin);
+    if (states[actives[instructor]] > 0) {
+      states[actives[instructor]]--;
     }
-    delete actives[msg.sender];
+    delete actives[instructor];
   }
 
   // Retrieves the class at the given index, if possible.

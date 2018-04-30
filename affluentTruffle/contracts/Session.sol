@@ -6,7 +6,7 @@
  * parent Class.
  */
 
-pragma solidity ^0.4.21;
+pragma solidity ^0.4.23;
 
 import './Class.sol';
 
@@ -26,7 +26,7 @@ contract Session {
   question[] private questions;  // Question list
 
   // Constructor: class is the parent class of this Session.
-  function Session(Class _class) public {
+  constructor(Class _class) public {
     class = _class;
     instructor = class.getInstructor();
     locked = true;

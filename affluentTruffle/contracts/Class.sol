@@ -5,8 +5,9 @@
  * statistical trends, and the question set.
  */
 
-pragma solidity ^0.4.21;
+pragma solidity ^0.4.23;
 
+import './Affluent.sol';
 import './Session.sol';
 
 contract Class {
@@ -18,6 +19,7 @@ contract Class {
   event NewSession(Session session, uint index);
   event Question(address student, string text);
 
+  Affluent private affluent;  // Parent Affluent contract
   address private instructor;  // Instructor's address
   question[] private questions;  // Questions list
   mapping (address => bool) private roster;  // Students enrolled in the class
@@ -28,7 +30,8 @@ contract Class {
 
   // Constructor; short denotes the short title, term denotes the offering's
   // term, and title is the longer title of the course.
-  function Class(string _short, string _term, string _title) public {
+  constructor(Affluent aff, string _short, string _term, string _title) public {
+    affluent = aff;
     instructor = msg.sender;
     short = _short;
     term = _term;
@@ -82,7 +85,7 @@ contract Class {
 
   // Returns whether the current message's sender has administrative privileges.
   function isAdmin() public view returns (bool) {
-    return msg.sender == instructor;
+    return msg.sender == instructor || msg.sender == affluent.admin();
   }
 
   // Verifies a student's enrollment.
