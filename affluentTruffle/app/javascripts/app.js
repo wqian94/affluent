@@ -136,7 +136,8 @@ const os = require('os');
     view.innerHTML = '';
 
     // Admin UI
-    if (isMyAccount(await instances.Affluent.admin())) {
+    const amAdmin = isMyAccount(await instances.Affluent.admin());
+    if (amAdmin) {
       view.innerHTML += '<div class="modal-dialog">' +
         '<div class="modal-content">' +
           '<div class="modal-header">' +
@@ -187,7 +188,7 @@ const os = require('os');
     }
 
     // Student UI
-    if (allEnrolledClasses.length) {
+    if ((!amAdmin && !allTaughtClasses.length) || allEnrolledClasses.length) {
       // Use allEnrolledClasses to list classes
       view.innerHTML += '<div class="modal-dialog">' +
         '<div class="modal-content">' +
