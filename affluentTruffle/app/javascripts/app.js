@@ -68,7 +68,7 @@ const os = require('os');
   //
   //////////////////////////////////////////////////////////////////////////////
 
-  const createModal = function(title, body) {
+  const createModal = function(title, body, footer='') {
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.setAttribute('role', 'dialog');
@@ -83,6 +83,7 @@ const os = require('os');
             '</button>' +
           '</div>' +
           `<div class="modal-body">${body}</div>` +
+          `<div class="modal-footer">${footer}</div>` +
         '</div>' +
       '</div>';
     return modal;
@@ -144,10 +145,60 @@ const os = require('os');
             '<h3 class="modal-title">Administrative View</h3>' +
           '</div>' +
           '<div class="modal-body">' +
-            '<button>Add new class</button>' +
+            '<button id="approveClassButton">Approve classes</button>' +
           '</div>' +
         '</div>' +
       '</div>';
+      const modal = createModal(
+        'Approve a new class',
+        '<div>Class address: <input type="text" id="approveClassAdr" /></div>' +
+        '<div id="approveClassInfo"></div>',
+        '<button id="approveClassActionApprove">Approve class</button>' +
+        '<button id="approveClassActionReject">Reject class</button>'
+      );
+      document.body.appendChild(modal);
+
+      var currentClass = null;
+
+      get('approveClassButton').addEventListener('click', async (event) => {
+        $(modal).modal('show');
+        currentClass = null;
+        get('approveClassAdr').value = '';
+        get('approveClassInfo').innerHTML = '';
+        get('approveClassActionApprove').setAttribute('disabled', '');
+        get('approveClassActionReject').setAttribute('disabled', '');
+      });
+      const onClassAddressChange = async (event) => {
+        try{
+          contracts.Class.at(event.target.value).then(async (err, result) => {
+            if (!err) {
+              get('approveClassActionApprove').removeAttribute('disabled');
+              get('approveClassActionReject').removeAttribute('disabled');
+              get('approveClassInfo').innerHTML = '';  // TODO: fill in result
+            }
+          });
+        } catch (e) {
+          currentClass = null;
+          get('approveClassInfo').innerHTML = '';
+          get('approveClassActionApprove').setAttribute('disabled', '');
+          get('approveClassActionReject').setAttribute('disabled', '');
+        }
+      };
+      get('approveClassAdr').addEventListener('change', onClassAddressChange);
+      get('approveClassAdr').addEventListener('keyup', onClassAddressChange);
+
+      get('approveClassActionApprove').addEventListener(
+        'click', async (event) => {
+          if (currentClass) {
+            instances.Affluent.activate(currentClass);
+          }
+          $(modal).modal('hide');
+      });
+      get('approveClassActionReject').addEventListener(
+        'click', async (event) => {
+          // TODO: remove class from consideration permanently unrevokably
+          $(modal).modal('hide');
+      });
     }
 
     const allTaughtClasses = [];
@@ -165,8 +216,22 @@ const os = require('os');
       }
     }
 
+    // Student UI
+    if ((!amAdmin && !allTaughtClasses.length) || allEnrolledClasses.length) {
+      // Use allEnrolledClasses to list classes
+      view.innerHTML += '<div class="modal-dialog">' +
+        '<div class="modal-content">' +
+          '<div class="modal-header">' +
+            '<h3 class="modal-title">Student View</h3>' +
+          '</div>' +
+          '<div class="modal-body">' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }
+
     // Instructor UI
-    if (allTaughtClasses.length) {
+    if (true || allTaughtClasses.length) {
       const currentClasses = [];
       for (const acct of accounts) {
         const cls = await instances.Affluent.getClassOf.call(acct);
@@ -182,23 +247,62 @@ const os = require('os');
             '<h3 class="modal-title">Instructor View</h3>' +
           '</div>' +
           '<div class="modal-body">' +
+            '<button id="createClassButton">Create a class</button>' +
           '</div>' +
         '</div>' +
       '</div>';
-    }
 
-    // Student UI
-    if ((!amAdmin && !allTaughtClasses.length) || allEnrolledClasses.length) {
-      // Use allEnrolledClasses to list classes
-      view.innerHTML += '<div class="modal-dialog">' +
-        '<div class="modal-content">' +
-          '<div class="modal-header">' +
-            '<h3 class="modal-title">Student View</h3>' +
-          '</div>' +
-          '<div class="modal-body">' +
-          '</div>' +
+      const modal = createModal(
+        'Create a new class',
+        '<div>Class Label: ' +
+          '<input id="createClassLabel" placeholder="CS244r" required type="text" />' +
         '</div>' +
-      '</div>';
+        '<div>Class Title: ' +
+          '<input id="createClassTitle" placeholder="Network Design Projects" required type="text" />' +
+        '</div>' +
+        '<div>Class Term: ' +
+          '<input id="createClassTerm" placeholder="Spring 2018" required type="text" />' +
+        '</div>' +
+        '<div id="createClassNotes"></div>',
+        '<button id="createClassAction">Submit class for approval</button>'
+      );
+      document.body.appendChild(modal);
+
+      get('createClassButton').addEventListener('click', async (event) => {
+        $(modal).modal('show');
+      });
+
+      get('createClassAction').addEventListener('click', async (event) => {
+        const label = get('createClassLabel').value;
+        const title = get('createClassTitle').value;
+        const term = get('createClassTerm').value;
+
+        get('createClassNotes').innerHTML = '';
+
+        var valid = true;
+        if (!label.length) {
+          get('createClassNotes').innerHTML += 'Invalid class label.<br />';
+          valid = false;
+        }
+        if (!title.length) {
+          get('createClassNotes').innerHTML += 'Invalid class title.<br />';
+          valid = false;
+        }
+        if (!term.length) {
+          get('createClassNotes').innerHTML += 'Invalid class term.<br />';
+          valid = false;
+        }
+
+        if (valid) {
+          console.log('trying');
+          const cls = await contracts.Class.new(
+            contracts.Affluent, label, term, title,
+            {from: accounts[0], gas:gas});  // TODO: figure out which account
+          console.log('done');
+          get('createClassNotes').innerHTML = 'Your class address is: ' +
+            cls.toString();
+        }
+      });
     }
   };
 

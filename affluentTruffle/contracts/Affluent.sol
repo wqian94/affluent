@@ -29,10 +29,10 @@ contract Affluent {
 
   // Activates a mapping from an instructor to the given contract address;
   // overwrites any previous mappings for the sender.
-  function activate(address instructor, Class class) public {
+  function activate(Class class) public {
     require(msg.sender == admin);
-    deactivate(instructor);
-    actives[instructor] = class;
+    deactivate(class.getInstructor());
+    actives[class.getInstructor()] = class;
     if (0 == states[class]) {
       classes.push(class);
       states[class] = 1;
