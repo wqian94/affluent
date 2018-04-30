@@ -121,7 +121,6 @@ const os = require('os');
       contracts[key].setProvider(web3.currentProvider);
     }
     instances.Affluent = await contracts.Affluent.deployed();
-    get('identity').textContent = account;
 
     // Set up views
     for (const ele of views) {
