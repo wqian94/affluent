@@ -165,17 +165,23 @@ const os = require('os');
       '</div>';
     }
 
+    const allTaughtClasses = [];
+    const allEnrolledClasses = [];
+    const numClasses = await instances.Affluent.numClasses.call();
+    for (var i = 0; i < numClasses; i++) {
+      const cls = await instances.Affluent.getClass.call(i);
+      if ((await cls.getInstructor.call()) == account) {
+        allTaughtClasses.push(cls);
+      }
+      if (await cls.isEnrolled.call(account)) {
+        allEnrolledClasses.push(cls);
+      }
+    }
+
     // Instructor UI
     if ((await instances.Affluent.admin()) == account) {
       const currentClass = await instances.Affluent.getClassOf.call(account);
-      const allMyClasses = [];
-      const numClasses = await instances.Affluent.numClasses.call();
-      for (var i = 0; i < numClasses; i++) {
-        const cls = await instances.Affluent.getClass.call(i);
-        if ((await cls.getInstructor().call()) == account) {
-          allMyClasses.push(cls);
-        }
-      }
+      // Use allTaughtClasses to list classes
       view.innerHTML += '<div class="modal-dialog">' +
         '<div class="modal-content">' +
           '<div class="modal-header">' +
@@ -189,6 +195,7 @@ const os = require('os');
 
     // Student UI
     if ((await instances.Affluent.admin()) == account) {
+      // Use allEnrolledClasses to list classes
       view.innerHTML += '<div class="modal-dialog">' +
         '<div class="modal-content">' +
           '<div class="modal-header">' +
