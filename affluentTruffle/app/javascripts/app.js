@@ -254,6 +254,9 @@ const os = require('os');
 
       const modal = createModal(
         'Create a new class',
+        '<div>Instructor Address: ' +
+          '<input id="createClassInstructorAddr" placeholder="0x..." required type="text" />' +
+        '</div>' +
         '<div>Class Label: ' +
           '<input id="createClassLabel" placeholder="CS244r" required type="text" />' +
         '</div>' +
@@ -273,6 +276,7 @@ const os = require('os');
       });
 
       get('createClassAction').addEventListener('click', async (event) => {
+        const instructor_addr = get('createClassInstructorAddr').value; // TODO: validate instructor address
         const label = get('createClassLabel').value;
         const title = get('createClassTitle').value;
         const term = get('createClassTerm').value;
@@ -280,6 +284,10 @@ const os = require('os');
         get('createClassNotes').innerHTML = '';
 
         var valid = true;
+        if (!instructor_addr.length) {
+          get('createClassNotes').innerHTML += 'Invalid instructor address.<br />';
+          valid = false;
+        }
         if (!label.length) {
           get('createClassNotes').innerHTML += 'Invalid class label.<br />';
           valid = false;
@@ -294,13 +302,13 @@ const os = require('os');
         }
 
         if (valid) {
-          console.log('trying');
+          let instance = await contracts.Affluent.deployed()
+          console.log(instance);
           const cls = await contracts.Class.new(
-            contracts.Affluent, label, term, title,
-            {from: accounts[0], gas:gas});  // TODO: figure out which account
-          console.log('done');
+            instance.address, label, term, title,
+            {from: instructor_addr, gas:gas});  // TODO: figure out which account
           get('createClassNotes').innerHTML = 'Your class address is: ' +
-            cls.toString();
+            cls.address.toString();
         }
       });
     }

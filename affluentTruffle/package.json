@@ -41,7 +41,8 @@
   "dependencies": {
     "ganache-cli": "^6.1.0",
     "ganache-core": "^2.1.0",
-    "truffle": "^4.1.6",
+    "solc": "^0.4.23",
+    "truffle": "^4.1.7",
     "upath": "^1.0.4"
   }
 }
