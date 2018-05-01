@@ -86,20 +86,27 @@ const os = require('os');
     modal.className = 'modal';
     modal.setAttribute('role', 'dialog');
     modal.setAttribute('tabindex', '-1');
-    modal.innerHTML =
-      '<div class="modal-dialog" role="document">' +
-        '<div class="modal-content">' +
-          '<div class="modal-header">' +
-            `<h5 class="modal-title">${title}</h5>` +
-            '<button type="button" class="close" data-dismiss="modal"' +
-              '<span>&times;</span>' +
-            '</button>' +
-          '</div>' +
-          `<div class="modal-body">${body}</div>` +
-          `<div class="modal-footer">${footer}</div>` +
-        '</div>' +
-      '</div>';
+    modal.innerHTML = createModalCard(title, body, footer, true);
     return modal;
+  };
+
+  const createModalCard = function(title, body, footer='', full=false) {
+    return '<div class="modal-dialog" role="document">' +
+      '<div class="modal-content">' +
+        '<div class="modal-header">' +
+          `<h5 class="modal-title">${title}</h5>` +
+          (
+            full ? 
+              '<button type="button" class="close" data-dismiss="modal"' +
+                '<span>&times;</span>' +
+              '</button>'
+            : ''
+          ) +
+        '</div>' +
+        `<div class="modal-body">${body}</div>` +
+        `<div class="modal-footer">${footer}</div>` +
+      '</div>' +
+    '</div>';
   };
     
   // Syntactic sugar for document.getElementById
@@ -151,6 +158,13 @@ const os = require('os');
     for (const child of view.childNodes) {
       view.removeChild(child);
     }
+
+    const summary = document.createElement('div');
+    summary.className = 'render';
+    summary.innerHTML = createModalCard(
+      'Class summary',
+      '<div id="summaryDescription"></div><hr />');
+    view.appendChild(summary);
   };
 
   const setupMain = async () => {
@@ -214,16 +228,9 @@ const os = require('os');
 
   // Sets up admin panel in main view
   const setupMainAdmin = async (ele) => {
-    ele.innerHTML = '<div class="modal-dialog">' +
-      '<div class="modal-content">' +
-        '<div class="modal-header">' +
-          '<h3 class="modal-title">For administrators</h3>' +
-        '</div>' +
-        '<div class="modal-body">' +
-          '<button id="approveClassButton">Approve classes</button>' +
-        '</div>' +
-      '</div>' +
-    '</div>';
+    ele.innerHTML = createModalCard(
+      'For administrators',
+      '<button id="approveClassButton">Approve classes</button>');
     setTimeout(function(){ele.className = 'render';}, 30);
 
     const modal = createModal(
@@ -286,22 +293,15 @@ const os = require('os');
   // Sets up instructor panel in main view
   const setupMainInstructor = async (ele, taughtStream) => {
     // Set up panel
-    ele.innerHTML = '<div class="modal-dialog">' +
-      '<div class="modal-content">' +
-        '<div class="modal-header">' +
-          '<h3 class="modal-title">For instructors</h3>' +
-        '</div>' +
-        '<div class="modal-body">' +
-          '<button id="createClassButton">Create a class</button>' +
-          '<hr />' +
-          '<h5>Active classes</h5>' +
-          '<div id="activeClasses"></div>' +
-          '<hr />' +
-          '<h5>Inactive classes</h5>' +
-          '<div id="inactiveClasses"></div>' +
-        '</div>' +
-      '</div>' +
-    '</div>';
+    ele.innerHTML = createModalCard(
+      'For instructors',
+      '<button id="createClassButton">Create a class</button>' +
+      '<hr />' +
+      '<h5>Active classes</h5>' +
+      '<div id="activeClasses"></div>' +
+      '<hr />' +
+      '<h5>Inactive classes</h5>' +
+      '<div id="inactiveClasses"></div>');
     setTimeout(function() {ele.className = 'render';}, 30);
 
     // Set up class creation modal
@@ -445,16 +445,9 @@ const os = require('os');
   const setupMainStudent = async (ele, amAdmin, enrolledStream) => {
     const reader = enrolledStream.getReader();
     const setupMainStudentFunc = function() {
-      ele.innerHTML = '<div class="modal-dialog">' +
-        '<div class="modal-content">' +
-          '<div class="modal-header">' +
-            '<h3 class="modal-title">For students</h3>' +
-          '</div>' +
-          '<div class="modal-body">' +
-            '<div id="enrolledClasses"></div>' +
-          '</div>' +
-        '</div>' +
-      '</div>';
+      ele.innerHTML = createModalCard(
+        'For students',
+        '<div id="enrolledClasses"></div>');
       setTimeout(function() {ele.className = 'render';}, 30);
     };
     const setupMainStudentStreamFunc = async ({done, value}) => {
@@ -509,6 +502,9 @@ const os = require('os');
   const viewClass = async () => {
     const view = get('viewClass');
     viewActivate(view);
+
+    get('summaryDescription').innerHTML =
+      await classDescription(instances.Class);
   };
 
   // Toggles to the main view
