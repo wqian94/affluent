@@ -9,6 +9,8 @@ view {
   line-height: 1;
   max-height: 100vh;
   opacity: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
   padding-top: 0px;
   position: absolute;
   text-align: center;
@@ -49,6 +51,7 @@ view > div.render {
 }
 
 #activeClasses > button,
+#enrolledClasses > button,
 #inactiveClasses > button {
   box-sizing: border-box;
   margin-top: 5px;

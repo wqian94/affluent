@@ -19,6 +19,7 @@ contract Class {
   event NewSession(Session session, uint index);
   event Question(address student, string text);
 
+  bool private active;  // Whether the class is currently active
   Affluent private affluent;  // Parent Affluent contract
   address private instructor;  // Instructor's address
   question[] private questions;  // Questions list
@@ -29,13 +30,21 @@ contract Class {
   string private title;  // Title, e.g. Computer Networks
 
   // Constructor; label denotes the label title, term denotes the offering's
-  // term, and title is the longer title of the course.
+  // term, and title is the longer title of the course. Classes are initialized
+  // to being inactive, and must be activated by calling activate().
   constructor(Affluent aff, string _label, string _term, string _title) public {
+    active = false;
     affluent = aff;
     instructor = msg.sender;
     label = _label;
     term = _term;
     title = _title;
+  }
+
+  // Activates the class
+  function activate() public {
+    adminOnly();
+    active = true;
   }
 
   // Checks whether the current message's sender has administrative privileges,
@@ -44,15 +53,23 @@ contract Class {
     require(isAdmin());
   }
 
+  // Deactivates the class
+  function deactivate() public {
+    adminOnly();
+    active = false;
+  }
+
   // Removes a student's enrollment.
   function drop(address student) public {
     adminOnly();
+    require(roster[student]);
     delete roster[student];
   }
 
   // Adds a student's enrollment.
   function enroll(address student) public {
     adminOnly();
+    require(!roster[student]);
     roster[student] = true;
   }
 
@@ -96,6 +113,11 @@ contract Class {
   // Returns the class title.
   function getTitle() public view returns (string) {
     return title;
+  }
+
+  // Returns whether the class is active.
+  function isActive() public view returns (bool) {
+    return active;
   }
 
   // Returns whether the current message's sender has administrative privileges.

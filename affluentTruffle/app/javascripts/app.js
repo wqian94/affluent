@@ -31,6 +31,7 @@ const os = require('os');
   //
   //////////////////////////////////////////////////////////////////////////////
 
+  var account = null;  // Currently-active account
   var accounts;
   var app;
   const gas = 4712388;  // Gas limit on transactions
@@ -46,6 +47,9 @@ const os = require('os');
       title: '% Yes Responses',
     },
   };
+  var role = null;  // Current role: student vs instructor
+  const roleInstructor = 'instructor';  // enum hack
+  const roleStudent = 'student';
   const views = [];
 
   //////////////////////////////////////////////////////////////////////////////
@@ -55,7 +59,8 @@ const os = require('os');
   //////////////////////////////////////////////////////////////////////////////
 
   {
-    for (const id of ['viewMain', 'viewResponse', 'viewSummary']) {
+    for (const id of [
+        'viewMain', 'viewClass', 'viewSummary', 'viewResponse']) {
       const ele = document.createElement('view');
       ele.id = id;
       views.push(ele);
@@ -136,8 +141,16 @@ const os = require('os');
       document.body.appendChild(ele);
     }
     setupMain();
+    setupClass();
 
     viewMain();
+  };
+
+  const setupClass = async () => {
+    const view = get('viewClass');
+    for (const child of view.childNodes) {
+      view.removeChild(child);
+    }
   };
 
   const setupMain = async () => {
@@ -150,237 +163,335 @@ const os = require('os');
     const amAdmin = isMyAccount(await instances.Affluent.admin());
     if (amAdmin) {
       const ele = document.createElement('div');
-      ele.innerHTML = '<div class="modal-dialog">' +
-        '<div class="modal-content">' +
-          '<div class="modal-header">' +
-            '<h3 class="modal-title">Administrative View</h3>' +
-          '</div>' +
-          '<div class="modal-body">' +
-            '<button id="approveClassButton">Approve classes</button>' +
-          '</div>' +
-        '</div>' +
-      '</div>';
       view.appendChild(ele);
-      const modal = createModal(
-        'Approve a new class',
-        '<div>Class address: <input type="text" id="approveClassAdr" /></div>' +
-        '<div id="approveClassInfo"></div>',
-        '<button id="approveClassActionApprove">Approve class</button>' +
-        '<button id="approveClassActionReject">Reject class</button>'
-      );
-      document.body.appendChild(modal);
-
-      var currentClass = null;
-
-      get('approveClassButton').addEventListener('click', async (event) => {
-        $(modal).modal('show');
-        currentClass = null;
-        get('approveClassAdr').value = '';
-        get('approveClassInfo').innerHTML = '';
-        get('approveClassActionApprove').setAttribute('disabled', '');
-        get('approveClassActionReject').setAttribute('disabled', '');
-      });
-      const onClassAddressChange = async (event) => {
-        try{
-          currentClass = await contracts.Class.at(event.target.value);
-          get('approveClassInfo').innerHTML =
-            await classDescription(currentClass);
-          get('approveClassActionApprove').removeAttribute('disabled');
-          get('approveClassActionReject').removeAttribute('disabled');
-        } catch (e) {
-          currentClass = null;
-          get('approveClassInfo').innerHTML = '';
-          get('approveClassActionApprove').setAttribute('disabled', '');
-          get('approveClassActionReject').setAttribute('disabled', '');
-        }
-      };
-      get('approveClassAdr').addEventListener('change', onClassAddressChange);
-      $(modal).on("shown.bs.modal", async (event) => {
-        get("approveClassAdr").focus();
-      });
-
-      get('approveClassActionApprove').addEventListener(
-        'click', async (event) => {
-          if (currentClass) {
-            instances.Affluent.activate(
-              currentClass.address,
-              {from: await instances.Affluent.admin(), gas: gas});
-          }
-          get('approveClassAdr').value = '';
-          $(modal).modal('hide');
-      });
-      get('approveClassActionReject').addEventListener(
-        'click', async (event) => {
-          // TODO: remove class from consideration permanently unrevokably
-          get('approveClassAdr').value = '';
-          $(modal).modal('hide');
-      });
-      setTimeout(function(){ele.className = 'render';}, 30);
+      setupMainAdmin(ele);
     }
 
-    const allTaughtClasses = [];
-    const allEnrolledClasses = [];
+    var enrolledStreamController = null;
+    const enrolledStream = new ReadableStream({
+      start(controller) {
+        enrolledStreamController = controller;
+      }
+    });
+    var taughtStreamController = null;
+    const taughtStream = new ReadableStream({
+      start(controller) {
+        taughtStreamController = controller;
+      }
+    });
+
+    // Student UI
+    {
+      const ele = document.createElement('div');
+      view.appendChild(ele);
+      setupMainStudent(ele, amAdmin, enrolledStream);
+    }
+
+    // Instructor UI
+    {
+      const ele = document.createElement('div');
+      view.appendChild(ele);
+      setupMainInstructor(ele, taughtStream);
+    }
+
     const numClasses = await instances.Affluent.numClasses.call();
     for (var i = 0; i < numClasses; i++) {
       const cls = await contracts.Class.at(
         await instances.Affluent.getClass.call(i));
       if (isMyAccount(await cls.getInstructor.call())) {
-        allTaughtClasses.unshift(cls);
+        taughtStreamController.enqueue(cls);
       }
       for (const acct of accounts) {
         if (await cls.isEnrolled.call(acct)) {
-          allEnrolledClasses.unshift(cls);
+          enrolledStreamController.enqueue({cls: cls, acct: acct});
+          break;
         }
       }
     }
+    enrolledStreamController.close();
+    taughtStreamController.close();
+  };
 
-    // Student UI
-    if ((!amAdmin && !allTaughtClasses.length) || allEnrolledClasses.length) {
-      // Use allEnrolledClasses to list classes
-      const ele = document.createElement('div');
-      ele.innerHTML = '<div class="modal-dialog">' +
-        '<div class="modal-content">' +
-          '<div class="modal-header">' +
-            '<h3 class="modal-title">Student View</h3>' +
-          '</div>' +
-          '<div class="modal-body">' +
-          '</div>' +
+  // Sets up admin panel in main view
+  const setupMainAdmin = async (ele) => {
+    ele.innerHTML = '<div class="modal-dialog">' +
+      '<div class="modal-content">' +
+        '<div class="modal-header">' +
+          '<h3 class="modal-title">For administrators</h3>' +
         '</div>' +
-      '</div>';
-      view.appendChild(ele);
-      setTimeout(function(){ele.className = 'render';}, 30);
+        '<div class="modal-body">' +
+          '<button id="approveClassButton">Approve classes</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+    setTimeout(function(){ele.className = 'render';}, 30);
+
+    const modal = createModal(
+      'Approve a new class',
+      '<div>Class address: <input type="text" id="approveClassAdr" /></div>' +
+      '<div id="approveClassInfo"></div>',
+      '<button id="approveClassActionApprove">Approve class</button>' +
+      '<button id="approveClassActionReject">Reject class</button>'
+    );
+    document.body.appendChild(modal);
+
+    var currentClass = null;
+
+    get('approveClassButton').addEventListener('click', async (event) => {
+      $(modal).modal('show');
+      currentClass = null;
+      get('approveClassAdr').value = '';
+      get('approveClassInfo').innerHTML = '';
+      get('approveClassActionApprove').setAttribute('disabled', '');
+      get('approveClassActionReject').setAttribute('disabled', '');
+    });
+    const onClassAddressChange = async (event) => {
+      try{
+        currentClass = await contracts.Class.at(event.target.value);
+        get('approveClassInfo').innerHTML =
+          await classDescription(currentClass);
+        get('approveClassActionApprove').removeAttribute('disabled');
+        get('approveClassActionReject').removeAttribute('disabled');
+      } catch (e) {
+        currentClass = null;
+        get('approveClassInfo').innerHTML = '';
+        get('approveClassActionApprove').setAttribute('disabled', '');
+        get('approveClassActionReject').setAttribute('disabled', '');
+      }
+    };
+    get('approveClassAdr').addEventListener('change', onClassAddressChange);
+    $(modal).on("shown.bs.modal", async (event) => {
+      get("approveClassAdr").focus();
+    });
+
+    get('approveClassActionApprove').addEventListener(
+      'click', async (event) => {
+        if (currentClass) {
+          instances.Affluent.activate(
+            currentClass.address,
+            {from: await instances.Affluent.admin(), gas: gas});
+        }
+        get('approveClassAdr').value = '';
+        $(modal).modal('hide');
+    });
+    get('approveClassActionReject').addEventListener(
+      'click', async (event) => {
+        // TODO: remove class from consideration permanently unrevokably
+        get('approveClassAdr').value = '';
+        $(modal).modal('hide');
+    });
+    setTimeout(function(){ele.className = 'render';}, 30);
+  };
+
+  // Sets up instructor panel in main view
+  const setupMainInstructor = async (ele, taughtStream) => {
+    // Set up panel
+    ele.innerHTML = '<div class="modal-dialog">' +
+      '<div class="modal-content">' +
+        '<div class="modal-header">' +
+          '<h3 class="modal-title">For instructors</h3>' +
+        '</div>' +
+        '<div class="modal-body">' +
+          '<button id="createClassButton">Create a class</button>' +
+          '<hr />' +
+          '<h5>Active classes</h5>' +
+          '<div id="activeClasses"></div>' +
+          '<hr />' +
+          '<h5>Inactive classes</h5>' +
+          '<div id="inactiveClasses"></div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+    setTimeout(function() {ele.className = 'render';}, 30);
+
+    // Set up class creation modal
+    const createClassModal = createModal(
+      'Create a new class',
+      '<div>Instructor Address: ' +
+        '<select id="createClassInstructor" required></select>' +
+      '</div>' +
+      '<div>Class Label: ' +
+        '<input id="createClassLabel" placeholder="CS244r" required type="text" />' +
+      '</div>' +
+      '<div>Class Title: ' +
+        '<input id="createClassTitle" placeholder="Network Design Projects" required type="text" />' +
+      '</div>' +
+      '<div>Class Term: ' +
+        '<input id="createClassTerm" placeholder="Spring 2018" required type="text" />' +
+      '</div>' +
+      '<div id="createClassNotes"></div>',
+      '<button id="createClassAction">Submit class for approval</button>'
+    );
+    document.body.appendChild(createClassModal);
+
+    for (const acct of accounts) {
+      const ele = document.createElement('option');
+      ele.value = acct.toString();
+      ele.textContent = acct.toString();
+      get('createClassInstructor').appendChild(ele);
     }
 
-    // Instructor UI
-    if (true || allTaughtClasses.length) {
-      const currentClassAddresses = [];
-      for (const acct of accounts) {
-        const cls_addr = await instances.Affluent.getClassOf.call(acct);
-        if (0 < cls_addr) {
-          currentClassAddresses.unshift(cls_addr);
-        }
+    get('createClassButton').addEventListener('click', async (event) => {
+      $(createClassModal).modal('show');
+    });
+
+    get('createClassAction').addEventListener('click', async (event) => {
+      const instructor = get('createClassInstructor').value;  // TODO: validate instructor address
+      const label = get('createClassLabel').value;
+      const title = get('createClassTitle').value;
+      const term = get('createClassTerm').value;
+
+      get('createClassNotes').innerHTML = '';
+
+      var valid = true;
+      if (!instructor.length) {
+        get('createClassNotes').innerHTML += 'Invalid instructor address.<br />';
+        valid = false;
+      }
+      if (!label.length) {
+        get('createClassNotes').innerHTML += 'Invalid class label.<br />';
+        valid = false;
+      }
+      if (!title.length) {
+        get('createClassNotes').innerHTML += 'Invalid class title.<br />';
+        valid = false;
+      }
+      if (!term.length) {
+        get('createClassNotes').innerHTML += 'Invalid class term.<br />';
+        valid = false;
       }
 
-      // Use allTaughtClasses to list classes
-      const ele = document.createElement('div');
-      ele.innerHTML = '<div class="modal-dialog">' +
-        '<div class="modal-content">' +
-          '<div class="modal-header">' +
-            '<h3 class="modal-title">Instructor View</h3>' +
-          '</div>' +
-          '<div class="modal-body">' +
-            '<button id="createClassButton">Create a class</button>' +
-            '<hr />' +
-            '<div id="activeClasses">' +
-              '<h5>Active classes</h5>' +
-            '</div>' +
-            '<hr />' +
-            '<div id="inactiveClasses">' +
-              '<h5>Inactive classes</h5>' +
-            '</div>' +
-          '</div>' +
-        '</div>' +
-      '</div>';
-      view.appendChild(ele);
-
-      const manageModal = createModal(
-        'Manage a class',
-        '<div id="manageClassBody"></div>',
-        '<div id="manageClassFooter"></div>'
-      );
-      document.body.appendChild(manageModal);
-      const manageClass = async (cls) => {
-      };
-
-      for (const cls_addr of currentClassAddresses) {
-        const cls = await contracts.Class.at(cls_addr);
-        const ele = document.createElement('button');
-        ele.innerHTML = await classDescription(cls);
-        ele.addEventListener('click', async (event) => {
-        });
-        get('activeClasses').appendChild(ele);
+      if (valid) {
+        try{
+          const instance = await contracts.Affluent.deployed();
+          const cls = await contracts.Class.new(
+            instance.address, label, term, title,
+            {from: instructor, gas: gas});
+          get('createClassNotes').innerHTML = 'Your class address is: ' +
+            cls.address.toString();
+        } catch (e) {
+          get('createClassNotes').innerHTML = `An error occurred: ${e}.`;
+        }
       }
+    });
 
-      for (const cls of allTaughtClasses) {
-        if (0 <= currentClassAddresses.indexOf(cls.address)) {
-          continue;
-        }
-        const ele = document.createElement('button');
-        ele.innerHTML = await classDescription(cls);
-        get('inactiveClasses').appendChild(ele);
-      }
-
-      const createClassModal = createModal(
-        'Create a new class',
-        '<div>Instructor Address: ' +
-          '<select id="createClassInstructor" required></select>' +
-        '</div>' +
-        '<div>Class Label: ' +
-          '<input id="createClassLabel" placeholder="CS244r" required type="text" />' +
-        '</div>' +
-        '<div>Class Title: ' +
-          '<input id="createClassTitle" placeholder="Network Design Projects" required type="text" />' +
-        '</div>' +
-        '<div>Class Term: ' +
-          '<input id="createClassTerm" placeholder="Spring 2018" required type="text" />' +
-        '</div>' +
-        '<div id="createClassNotes"></div>',
-        '<button id="createClassAction">Submit class for approval</button>'
-      );
-      document.body.appendChild(createClassModal);
-
-      for (const acct of accounts) {
-        const ele = document.createElement('option');
-        ele.value = acct.toString();
-        ele.textContent = acct.toString();
-        get('createClassInstructor').appendChild(ele);
-      }
-
-      get('createClassButton').addEventListener('click', async (event) => {
-        $(createClassModal).modal('show');
-      });
-
-      get('createClassAction').addEventListener('click', async (event) => {
-        const instructor = get('createClassInstructor').value;  // TODO: validate instructor address
-        const label = get('createClassLabel').value;
-        const title = get('createClassTitle').value;
-        const term = get('createClassTerm').value;
-
-        get('createClassNotes').innerHTML = '';
-
-        var valid = true;
-        if (!instructor.length) {
-          get('createClassNotes').innerHTML += 'Invalid instructor address.<br />';
-          valid = false;
-        }
-        if (!label.length) {
-          get('createClassNotes').innerHTML += 'Invalid class label.<br />';
-          valid = false;
-        }
-        if (!title.length) {
-          get('createClassNotes').innerHTML += 'Invalid class title.<br />';
-          valid = false;
-        }
-        if (!term.length) {
-          get('createClassNotes').innerHTML += 'Invalid class term.<br />';
-          valid = false;
-        }
-
-        if (valid) {
-          try{
-            const instance = await contracts.Affluent.deployed();
-            const cls = await contracts.Class.new(
-              instance.address, label, term, title,
-              {from: instructor, gas: gas});
-            get('createClassNotes').innerHTML = 'Your class address is: ' +
-              cls.address.toString();
-          } catch (e) {
-            get('createClassNotes').innerHTML = `An error occurred: ${e}.`;
+    // Set up class management modal
+    const manageModal = createModal(
+      'Manage a class',
+      '<div id="manageClassBody"></div>',
+      '<div id="manageClassFooter"></div>'
+    );
+    document.body.appendChild(manageModal);
+    const manageClass = async (cls) => {
+      const instructor = await cls.getInstructor.call();
+      $(manageModal).modal('show');
+      get('manageClassBody').innerHTML = (await classDescription(cls)) +
+        '<hr />' +
+        'Enroll students with newline-separated addresses below:<br />' +
+        '<textarea id="manageClassEnroll"></textarea>' +
+        '<div id="manageClassEnrollNotes"></div>';
+      get('manageClassFooter').innerHTML =
+        '<button id="manageClassEnrollButton">Enroll students</button>' +
+        '<button id="manageClassViewSummaryButton">View summary</button>';
+      get('manageClassEnroll').style.height = '5em';
+      get('manageClassEnroll').style.width = '100%';
+      get('manageClassEnrollButton').addEventListener(
+        'click', async (event) => {
+          get('manageClassEnrollNotes').innerHTML = '';
+          const students = get('manageClassEnroll').value.split('\n');
+          for (const student of students) {
+            const address = student.trim();
+            try{
+              await cls.enroll(address, {from: instructor, gas: gas});
+              get('manageClassEnrollNotes').innerHTML +=
+                `<div>${address} successfully enrolled.</div>`;
+            } catch (e) {
+              get('manageClassEnrollNotes').innerHTML +=
+                `<div>${address} could not be enrolled.</div>`;
+            }
           }
-        }
       });
-      setTimeout(function(){ele.className = 'render';}, 30);
+    };
+
+    const reader = taughtStream.getReader();
+    const taughtStreamFunc = async ({done, value}) => {
+      if (done) {
+        return;
+      }
+
+      const cls = value;
+      const parent = (await cls.isActive.call()) ?
+        get('activeClasses') : get('inactiveClasses');
+      const b = document.createElement('button');
+      b.innerHTML = await classDescription(cls);
+      b.addEventListener('click', async (event) => {
+        instances.Class = cls;
+        account = await cls.getInstructor.call();
+        role = roleInstructor;
+        viewClass();
+      });
+      if (parent.childNodes.length) {
+        parent.insertBefore(b, parent.childNodes[0]);
+      } else {
+        parent.appendChild(b);
+      }
+
+      reader.read().then(taughtStreamFunc);
+    };
+    reader.read().then(taughtStreamFunc);
+  };
+
+  // Sets up student panel in main view
+  const setupMainStudent = async (ele, amAdmin, enrolledStream) => {
+    const reader = enrolledStream.getReader();
+    const setupMainStudentFunc = function() {
+      ele.innerHTML = '<div class="modal-dialog">' +
+        '<div class="modal-content">' +
+          '<div class="modal-header">' +
+            '<h3 class="modal-title">For students</h3>' +
+          '</div>' +
+          '<div class="modal-body">' +
+            '<div id="enrolledClasses"></div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+      setTimeout(function() {ele.className = 'render';}, 30);
+    };
+    const setupMainStudentStreamFunc = async ({done, value}) => {
+      if (done) {
+        return;
+      }
+
+      const acct = value.acct;
+      const cls = value.cls;
+
+      const b = document.createElement('button');
+      b.innerHTML = await classDescription(cls);
+      b.addEventListener('click', async (event) => {
+        instances.Class = cls;
+        account = acct;
+        role = roleStudent;
+        viewClass();
+      });
+      if (get('enrolledClasses').childNodes.length) {
+        get('enrolledClasses').insertBefore(
+          b, get('enrolledClasses').childNodes[0]);
+      } else {
+        get('enrolledClasses').appendChild(b);
+      }
+
+      reader.read().then(setupMainStudentStreamFunc);
+    };
+    if (!amAdmin) {
+      setupMainStudentFunc();
     }
+    reader.read().then(async ({done, value}) => {
+      if (amAdmin && !done) {
+        setupMainStudentFunc();
+      }
+
+      setupMainStudentStreamFunc({done, value});
+    });
   };
 
   // Toggles all views off except the matched DOM object activeView
@@ -392,6 +503,12 @@ const os = require('os');
         ele.className = '';
       }
     }
+  };
+
+  // Toggles to the class view
+  const viewClass = async () => {
+    const view = get('viewClass');
+    viewActivate(view);
   };
 
   // Toggles to the main view
@@ -410,7 +527,7 @@ const os = require('os');
       Plotly.newPlot('summaryView', plotData, plotLayout);
     },
     start: function() {
-      app = this;
+      app = this;  // Prevent external maliciousness by reassigning window.App
 
       // Get the initial account balance so it can be displayed.
       web3.eth.getAccounts(async (err, accs) => {
