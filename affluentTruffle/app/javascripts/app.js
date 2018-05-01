@@ -1,6 +1,6 @@
 // Import libraries we need.
 import { default as Web3} from 'web3';
-import { default as contract } from 'truffle-contract'
+import { default as contract } from 'truffle-contract';
 
 const os = require('os');
 
@@ -68,6 +68,14 @@ const os = require('os');
   //
   //////////////////////////////////////////////////////////////////////////////
 
+  // Generates a text description of the class
+  const classDescription = async (cls) => {
+    return `${await cls.getLabel.call()}: ` +
+      `${await cls.getTitle.call()}<br />` +
+      `Instructor: ${await cls.getInstructor.call()}<br />` +
+      `Term: ${await cls.getTerm()}`;
+  };
+
   const createModal = function(title, body, footer='') {
     const modal = document.createElement('div');
     modal.className = 'modal';
@@ -127,19 +135,22 @@ const os = require('os');
     for (const ele of views) {
       document.body.appendChild(ele);
     }
-    await setupMain();
+    setupMain();
 
     viewMain();
   };
 
   const setupMain = async () => {
     const view = get('viewMain');
-    view.innerHTML = '';
+    for (const child of view.childNodes) {
+      view.removeChild(child);
+    }
 
     // Admin UI
     const amAdmin = isMyAccount(await instances.Affluent.admin());
     if (amAdmin) {
-      view.innerHTML += '<div class="modal-dialog">' +
+      const ele = document.createElement('div');
+      ele.innerHTML = '<div class="modal-dialog">' +
         '<div class="modal-content">' +
           '<div class="modal-header">' +
             '<h3 class="modal-title">Administrative View</h3>' +
@@ -149,6 +160,7 @@ const os = require('os');
           '</div>' +
         '</div>' +
       '</div>';
+      view.appendChild(ele);
       const modal = createModal(
         'Approve a new class',
         '<div>Class address: <input type="text" id="approveClassAdr" /></div>' +
@@ -170,13 +182,11 @@ const os = require('os');
       });
       const onClassAddressChange = async (event) => {
         try{
-          contracts.Class.at(event.target.value).then(async (err, result) => {
-            if (!err) {
-              get('approveClassActionApprove').removeAttribute('disabled');
-              get('approveClassActionReject').removeAttribute('disabled');
-              get('approveClassInfo').innerHTML = '';  // TODO: fill in result
-            }
-          });
+          currentClass = await contracts.Class.at(event.target.value);
+          get('approveClassInfo').innerHTML =
+            await classDescription(currentClass);
+          get('approveClassActionApprove').removeAttribute('disabled');
+          get('approveClassActionReject').removeAttribute('disabled');
         } catch (e) {
           currentClass = null;
           get('approveClassInfo').innerHTML = '';
@@ -185,27 +195,35 @@ const os = require('os');
         }
       };
       get('approveClassAdr').addEventListener('change', onClassAddressChange);
-      get('approveClassAdr').addEventListener('keyup', onClassAddressChange);
+      $(modal).on("shown.bs.modal", async (event) => {
+        get("approveClassAdr").focus();
+      });
 
       get('approveClassActionApprove').addEventListener(
         'click', async (event) => {
           if (currentClass) {
-            instances.Affluent.activate(currentClass);
+            instances.Affluent.activate(
+              currentClass.address,
+              {from: await instances.Affluent.admin(), gas: gas});
           }
+          get('approveClassAdr').value = '';
           $(modal).modal('hide');
       });
       get('approveClassActionReject').addEventListener(
         'click', async (event) => {
           // TODO: remove class from consideration permanently unrevokably
+          get('approveClassAdr').value = '';
           $(modal).modal('hide');
       });
+      setTimeout(function(){ele.className = 'render';}, 30);
     }
 
     const allTaughtClasses = [];
     const allEnrolledClasses = [];
     const numClasses = await instances.Affluent.numClasses.call();
     for (var i = 0; i < numClasses; i++) {
-      const cls = await instances.Affluent.getClass.call(i);
+      const cls = await contracts.Class.at(
+        await instances.Affluent.getClass.call(i));
       if (isMyAccount(await cls.getInstructor.call())) {
         allTaughtClasses.push(cls);
       }
@@ -219,7 +237,8 @@ const os = require('os');
     // Student UI
     if ((!amAdmin && !allTaughtClasses.length) || allEnrolledClasses.length) {
       // Use allEnrolledClasses to list classes
-      view.innerHTML += '<div class="modal-dialog">' +
+      const ele = document.createElement('div');
+      ele.innerHTML = '<div class="modal-dialog">' +
         '<div class="modal-content">' +
           '<div class="modal-header">' +
             '<h3 class="modal-title">Student View</h3>' +
@@ -228,34 +247,62 @@ const os = require('os');
           '</div>' +
         '</div>' +
       '</div>';
+      view.appendChild(ele);
+      setTimeout(function(){ele.className = 'render';}, 30);
     }
 
     // Instructor UI
     if (true || allTaughtClasses.length) {
-      const currentClasses = [];
+      const currentClassAddresses = [];
       for (const acct of accounts) {
-        const cls = await instances.Affluent.getClassOf.call(acct);
-        if (cls) {
-          currentClasses.push(cls);
+        const cls_addr = await instances.Affluent.getClassOf.call(acct);
+        if (0 < cls_addr) {
+          currentClassAddresses.push(cls_addr);
         }
       }
 
       // Use allTaughtClasses to list classes
-      view.innerHTML += '<div class="modal-dialog">' +
+      const ele = document.createElement('div');
+      ele.innerHTML = '<div class="modal-dialog">' +
         '<div class="modal-content">' +
           '<div class="modal-header">' +
             '<h3 class="modal-title">Instructor View</h3>' +
           '</div>' +
           '<div class="modal-body">' +
             '<button id="createClassButton">Create a class</button>' +
+            '<hr />' +
+            '<div id="activeClasses">' +
+              '<h5>Active classes</h5>' +
+            '</div>' +
+            '<hr />' +
+            '<div id="inactiveClasses">' +
+              '<h5>Inactive classes</h5>' +
+            '</div>' +
           '</div>' +
         '</div>' +
       '</div>';
+      view.appendChild(ele);
+
+      for (const cls_addr of currentClassAddresses) {
+        const ele = document.createElement('button');
+        ele.innerHTML = await classDescription(
+          await contracts.Class.at(cls_addr));
+        get('activeClasses').appendChild(ele);
+      }
+
+      for (const cls of allTaughtClasses) {
+        if (0 <= currentClassAddresses.indexOf(cls.address)) {
+          continue;
+        }
+        const ele = document.createElement('button');
+        ele.innerHTML = await classDescription(cls);
+        get('inactiveClasses').appendChild(ele);
+      }
 
       const modal = createModal(
         'Create a new class',
         '<div>Instructor Address: ' +
-          '<input id="createClassInstructorAddr" placeholder="0x..." required type="text" />' +
+          '<select id="createClassInstructor" required></select>' +
         '</div>' +
         '<div>Class Label: ' +
           '<input id="createClassLabel" placeholder="CS244r" required type="text" />' +
@@ -271,12 +318,19 @@ const os = require('os');
       );
       document.body.appendChild(modal);
 
+      for (const acct of accounts) {
+        const ele = document.createElement('option');
+        ele.value = acct.toString();
+        ele.textContent = acct.toString();
+        get('createClassInstructor').appendChild(ele);
+      }
+
       get('createClassButton').addEventListener('click', async (event) => {
         $(modal).modal('show');
       });
 
       get('createClassAction').addEventListener('click', async (event) => {
-        const instructor_addr = get('createClassInstructorAddr').value; // TODO: validate instructor address
+        const instructor = get('createClassInstructor').value; // TODO: validate instructor address
         const label = get('createClassLabel').value;
         const title = get('createClassTitle').value;
         const term = get('createClassTerm').value;
@@ -284,7 +338,7 @@ const os = require('os');
         get('createClassNotes').innerHTML = '';
 
         var valid = true;
-        if (!instructor_addr.length) {
+        if (!instructor.length) {
           get('createClassNotes').innerHTML += 'Invalid instructor address.<br />';
           valid = false;
         }
@@ -302,15 +356,19 @@ const os = require('os');
         }
 
         if (valid) {
-          let instance = await contracts.Affluent.deployed()
-          console.log(instance);
-          const cls = await contracts.Class.new(
-            instance.address, label, term, title,
-            {from: instructor_addr, gas:gas});  // TODO: figure out which account
-          get('createClassNotes').innerHTML = 'Your class address is: ' +
-            cls.address.toString();
+          try{
+            const instance = await contracts.Affluent.deployed();
+            const cls = await contracts.Class.new(
+              instance.address, label, term, title,
+              {from: instructor, gas: gas});
+            get('createClassNotes').innerHTML = 'Your class address is: ' +
+              cls.address.toString();
+          } catch (e) {
+            get('createClassNotes').innerHTML = `An error occurred: ${e}.`;
+          }
         }
       });
+      setTimeout(function(){ele.className = 'render';}, 30);
     }
   };
 
@@ -622,7 +680,7 @@ const os = require('os');
 
   window.addEventListener('load', function() {
     // Checking if Web3 has been injected by the browser (Mist/MetaMask)
-    if (typeof web3 !== 'undefined') {
+    if (false && typeof web3 !== 'undefined') {
       //console.warn("Using web3 detected from external source. If you find that your accounts don't appear or you have 0 Affluent, ensure you've configured that source properly. If using MetaMask, see the following link. Feel free to delete this warning. :) http://truffleframework.com/tutorials/truffle-and-metamask")
       // Use Mist/MetaMask's provider
       window.web3 = new Web3(web3.currentProvider);

@@ -24,16 +24,16 @@ contract Class {
   question[] private questions;  // Questions list
   mapping (address => bool) private roster;  // Students enrolled in the class
   Session[] private sessions;  // Class sessions
-  string private short;  // Short title, e.g. CS144r/244r
+  string private label;  // Short title label, e.g. CS144r/244r
   string private term;  // Term, e.g. Spring 2018
   string private title;  // Title, e.g. Computer Networks
 
-  // Constructor; short denotes the short title, term denotes the offering's
+  // Constructor; label denotes the label title, term denotes the offering's
   // term, and title is the longer title of the course.
-  constructor(Affluent aff, string _short, string _term, string _title) public {
+  constructor(Affluent aff, string _label, string _term, string _title) public {
     affluent = aff;
     instructor = msg.sender;
-    short = _short;
+    label = _label;
     term = _term;
     title = _title;
   }
@@ -61,6 +61,11 @@ contract Class {
     return instructor;
   }
 
+  // Returns the class label.
+  function getLabel() public view returns (string) {
+    return label;
+  }
+
   // Get the question at the given index.
   function getQuestionText(uint index) public view returns (string) {
     require(index < numQuestions());
@@ -81,6 +86,16 @@ contract Class {
     require(sindex < numSessions());
     require(qindex < numQuestions());
     return sessions[sindex].getQuestionResponse(option, qindex);
+  }
+
+  // Returns the class term.
+  function getTerm() public view returns (string) {
+    return term;
+  }
+
+  // Returns the class title.
+  function getTitle() public view returns (string) {
+    return title;
   }
 
   // Returns whether the current message's sender has administrative privileges.
