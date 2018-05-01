@@ -50,7 +50,11 @@ view > div.render {
 
 #activeClasses > button,
 #inactiveClasses > button {
+  box-sizing: border-box;
   margin-top: 5px;
+  max-width: 100%;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 #addQuestionModalText {

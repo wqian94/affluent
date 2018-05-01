@@ -11,7 +11,7 @@
   };
   const port = getArg(3, 8545);
   const network_id = getArg(4, 144244);
-  const naccounts = getArg(5, 200);
+  const naccounts = getArg(5, 20);
   if (process.argv.length > 2) {
     address = process.argv[2];
   } else {

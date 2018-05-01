@@ -225,11 +225,11 @@ const os = require('os');
       const cls = await contracts.Class.at(
         await instances.Affluent.getClass.call(i));
       if (isMyAccount(await cls.getInstructor.call())) {
-        allTaughtClasses.push(cls);
+        allTaughtClasses.unshift(cls);
       }
       for (const acct of accounts) {
         if (await cls.isEnrolled.call(acct)) {
-          allEnrolledClasses.push(cls);
+          allEnrolledClasses.unshift(cls);
         }
       }
     }
@@ -257,7 +257,7 @@ const os = require('os');
       for (const acct of accounts) {
         const cls_addr = await instances.Affluent.getClassOf.call(acct);
         if (0 < cls_addr) {
-          currentClassAddresses.push(cls_addr);
+          currentClassAddresses.unshift(cls_addr);
         }
       }
 
@@ -283,10 +283,21 @@ const os = require('os');
       '</div>';
       view.appendChild(ele);
 
+      const manageModal = createModal(
+        'Manage a class',
+        '<div id="manageClassBody"></div>',
+        '<div id="manageClassFooter"></div>'
+      );
+      document.body.appendChild(manageModal);
+      const manageClass = async (cls) => {
+      };
+
       for (const cls_addr of currentClassAddresses) {
+        const cls = await contracts.Class.at(cls_addr);
         const ele = document.createElement('button');
-        ele.innerHTML = await classDescription(
-          await contracts.Class.at(cls_addr));
+        ele.innerHTML = await classDescription(cls);
+        ele.addEventListener('click', async (event) => {
+        });
         get('activeClasses').appendChild(ele);
       }
 
@@ -299,7 +310,7 @@ const os = require('os');
         get('inactiveClasses').appendChild(ele);
       }
 
-      const modal = createModal(
+      const createClassModal = createModal(
         'Create a new class',
         '<div>Instructor Address: ' +
           '<select id="createClassInstructor" required></select>' +
@@ -316,7 +327,7 @@ const os = require('os');
         '<div id="createClassNotes"></div>',
         '<button id="createClassAction">Submit class for approval</button>'
       );
-      document.body.appendChild(modal);
+      document.body.appendChild(createClassModal);
 
       for (const acct of accounts) {
         const ele = document.createElement('option');
@@ -326,11 +337,11 @@ const os = require('os');
       }
 
       get('createClassButton').addEventListener('click', async (event) => {
-        $(modal).modal('show');
+        $(createClassModal).modal('show');
       });
 
       get('createClassAction').addEventListener('click', async (event) => {
-        const instructor = get('createClassInstructor').value; // TODO: validate instructor address
+        const instructor = get('createClassInstructor').value;  // TODO: validate instructor address
         const label = get('createClassLabel').value;
         const title = get('createClassTitle').value;
         const term = get('createClassTerm').value;
