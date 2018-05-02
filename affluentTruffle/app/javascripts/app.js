@@ -216,7 +216,7 @@ const os = require('os');
     admin.id = 'viewClassAdmin';
     admin.innerHTML = createModalCard(
       'Class administration',
-      '<div class="infoText"><div id="activateInfo">Activate the course if it is currently being taught.</div>' +
+      '<div class="infoText"><div id="activateInfo">Activate the course if it is currently being taught this semester.</div>' +
       '<button id="activateInfoShow" class="infoButton">i</button>' +
       '<button id="viewClassAdminActivate" class="courseAdminButton">Activate class</button>' +
       '<button id="viewClassAdminDeactivate" class="courseAdminButton">Deactivate class</button>' +
