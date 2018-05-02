@@ -229,6 +229,14 @@ const os = require('os');
     );
     view.appendChild(admin);
 
+    const student = document.createElement('div');
+    student.id = 'viewClassStudent';
+    student.innerHTML = createModalCard(
+      'Student actions',
+      '<button id="viewClassStudentResponse">In-class responses</button>'
+    );
+    view.appendChild(student);
+
     get('viewClassAdminActivate').addEventListener('click', async (event) => {
       await instances.Class.activate({from: account, gas:gas});
       viewClass();
@@ -413,6 +421,26 @@ const os = require('os');
         }
       }
     );
+
+    get('viewClassStudentResponse').addEventListener('click', async (event) => {
+      const active = await instances.Class.isActive.call();
+      const numSessions = (await instances.Class.numSessions.call()).toNumber();
+      if (!active || !numSessions) {
+        const modal = createModalEphemeral(
+          'Class is currently not accepting responses',
+          'Unfortunately, this class is not currently accepting responses '+
+          'because:' +
+          '<ul>' +
+            (active ? '' : '<li>The class is not active</li>') +
+            (numSessions ? '' : '<li>There are no sessions</li>') +
+          '</ul>'
+        );
+        $(modal).modal('show');
+        return;
+      }
+
+      viewResponse();
+    });
   };
 
   const setupMain = async () => {
@@ -763,6 +791,7 @@ const os = require('os');
 
     if (roleInstructor == role) {
       get('viewClassAdmin').className = 'render';
+      get('viewClassStudent').className = '';
       if (active) {
         get('viewClassAdminActivate').style.display = 'none';
         get('viewClassAdminDeactivate').style.display = '';
@@ -812,6 +841,7 @@ const os = require('os');
       }
     } else {
       get('viewClassAdmin').className = '';
+      get('viewClassStudent').className = 'render';
     }
 
     viewActivate(view);
@@ -820,6 +850,11 @@ const os = require('os');
   // Toggles to the main view
   const viewMain = async () => {
     viewActivate(get('viewMain'));
+  };
+
+  // Toggles to the response view
+  const viewResponse = async () => {
+    viewActivate(get('viewResponse'));
   };
 
   //////////////////////////////////////////////////////////////////////////////

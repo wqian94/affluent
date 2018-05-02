@@ -28,11 +28,15 @@ view.active {
 }
 
 view > div {
+  display: none;
+  height: 0px;
   opacity: 0;
   transition: all 500ms linear;
 }
 
 view > div.render {
+  display: block;
+  height: auto;
   opacity: 1;
 }
 
@@ -129,12 +133,16 @@ view > div.render {
 }
 
 #viewClassAdmin {
-  display: flex;
+  display: none;
   flex-flow: row wrap;
   align-items: center;
   justify-content: center;
   margin: 0 auto;
   width: 100%;
+}
+
+#viewClassAdmin.render {
+  display: flex;
 }
 
 #viewClassAdmin .modal-content {
