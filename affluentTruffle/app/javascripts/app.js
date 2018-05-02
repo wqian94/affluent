@@ -529,7 +529,7 @@ const os = require('os');
       latestSessionMessage = "No feedback sessions deployed.";
     } else {
       const sess = await contracts.Session.at(latestSessionAddr);
-      latestSessionMessage = "";
+      latestSessionMessage = '<button id="giveCourseFeedback">Give Feedback</button>';
     }
 
     get('summaryDescription').innerHTML =
