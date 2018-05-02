@@ -161,7 +161,11 @@ contract Class {
   function popQuestion(address target, uint index) public {
     require(index < numQuestions());
     // Prevent student-student sabotage
-    require(msg.sender == instructor || msg.sender == target);
+    bool valid = (msg.sender == instructor);
+    for (uint i = 0; !valid && (i < sessions.length); i++) {
+      valid = (valid || (msg.sender == address(sessions[i])));
+    }
+    require(valid);
     emit Question(target, questions[index].text);
   }
 }

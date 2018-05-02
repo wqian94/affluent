@@ -188,6 +188,7 @@ const os = require('os');
     }
     setupMain();
     setupClass();
+    setupResponse();
 
     viewMain();
   };
@@ -438,6 +439,9 @@ const os = require('os');
         $(modal).modal('show');
         return;
       }
+
+      instances.Session = await contracts.Session.at(
+        await instances.Class.getSession(numSessions - 1));
 
       viewResponse();
     });
@@ -761,6 +765,107 @@ const os = require('os');
 
       setupMainStudentStreamFunc({done, value});
     });
+  };
+
+  // Sets up response view
+  const setupResponse = async () => {
+    const view = get('viewResponse');
+    const ele = document.createElement('div');
+    ele.className = "centered render";
+    ele.id = "responseCanvas";
+    ele.setAttribute("draggable", "true");
+    view.appendChild(ele);
+
+    const buffer = Math.max(50, 0.05 * window.innerWidth);
+    var originX = null;
+
+    const getDefined = function() {
+      for (const f of arguments) {
+        const ele = f();
+        if ('undefined' != typeof ele) {
+          return ele;
+        }
+      }
+      return null;
+    };
+
+    const getDir = function(x) {
+      const diff = x - originX;
+      const direction = Math.sign(diff);
+      return direction * Math.max(0, Math.abs(diff) - buffer);
+    };
+
+    const drag = function(event) {
+      console.log(event.screenX, window.innerWidth, originX);
+      const x = getDefined(
+        function() { return event.screenX; },
+        function() { return event.changedTouches[0].pageX; });
+      const direction = getDir(x);
+      console.log(direction);
+      if (0 == direction) {
+        ele.style.background = 'white';
+        return;
+      }
+      const offset = Math.max(0, Math.abs(x - originX) - buffer);
+      const ratio = Math.min(
+        1, offset / Math.max(200, 0.1 *  window.innerWidth));
+      const clr_neutral = `rgba(255, 255, 255, ${ratio})`;
+      const clr_true = `rgba(66, 218, 111, ${ratio})`;
+      const clr_false = `rgba(255, 105, 97, ${ratio})`;
+      if (direction < 0) {  // false
+        ele.style.background =
+          `linear-gradient(to right, ${clr_false}, ${clr_neutral})`;
+      } else {  // true
+        ele.style.background =
+          `linear-gradient(to left, ${clr_true}, ${clr_neutral})`;
+      }
+    };
+
+    const dragend = function(event) {
+      ele.style.background = 'white';
+
+      const x = getDefined(
+        function() { return event.screenX; },
+        function() { return event.changedTouches[0].pageX; });
+      const direction = getDir(x);
+      if (0 == direction) {
+        return;
+      }
+
+      // Successfully registered response
+      const response = (0 < direction ? true : false);
+      instances.Session.submitResponse(response, {from: account, gas: gas});
+      originX = null;
+    };
+
+    const dragstart = function(event) {
+      const x = getDefined(
+        function() { return event.screenX; },
+        function() { return event.changedTouches[0].pageX; });
+      originX = x;
+      if (event.dataTransfer) {
+        event.dataTransfer.setDragImage(new Image(), 0, 0);
+      }
+    };
+
+    ele.addEventListener("drag", drag);
+    ele.addEventListener("dragend", dragend);
+    ele.addEventListener("dragstart", dragstart);
+    ele.addEventListener("touchcancel", function() {
+      originX = null;
+    });
+    ele.addEventListener("touchend", dragend);
+    ele.addEventListener("touchmove", drag);
+    ele.addEventListener("touchstart", dragstart);
+
+    /*
+    // TODO: hook up question watch
+    instances.Class.Question().watch(async (error, result) => {
+      if (!error && account == result.args.student) {
+          ele.textContent = result.args.text;
+      }
+    });
+    */
   };
 
   // Toggles all views off except the matched DOM object activeView
