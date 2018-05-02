@@ -175,10 +175,13 @@ const os = require('os');
     admin.id = 'viewClassAdmin';
     admin.innerHTML = createModalCard(
       'Class administration',
-      '<button id="viewClassAdminActivate">Activate class</button>&nbsp;' +
-      '<button id="viewClassAdminDeactivate">Deactivate class</button>&nbsp;' +
-      '<button id="viewClassAdminEnroll">Enroll students</button>&nbsp;' +
-      '<button id="viewClassAdminNew">New session</button>&nbsp;' +
+      '<button id="viewClassAdminActivate">Activate class</button>' +
+      '<button id="viewClassAdminDeactivate">Deactivate class</button>' +
+      '<hr />' +
+      '<button id="viewClassAdminEnroll">Enroll students</button>' +
+      '<hr />' +
+      '<button id="viewClassAdminNew">New session</button>' +
+      '<hr />' +
       '<button id="viewClassAdminAdd">Add questions</button>'
     );
     view.appendChild(admin);
@@ -551,13 +554,15 @@ const os = require('os');
   const viewClass = async () => {
     const view = get('viewClass');
 
+    const description = await classDescription(instances.Class)
+    const active = await instances.Class.isActive.call();
     get('viewClassSummaryDescription').innerHTML =
-      `${await classDescription(instances.Class)}<br />` +
-      `Status: ${(await instances.Class.isActive()) ? 'Active' : 'Inactive'}`;
+      `${prettifyDescription(description)}<br />` +
+      `<h5>Status: ${active ? 'Active' : 'Inactive'}</h5>`;
 
     if (roleInstructor == role) {
       get('viewClassAdmin').className = 'render';
-      if (await instances.Class.isActive()) {
+      if (active) {
         get('viewClassAdminActivate').style.display = 'none';
         get('viewClassAdminDeactivate').style.display = '';
       } else {
