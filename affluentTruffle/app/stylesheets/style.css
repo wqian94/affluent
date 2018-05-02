@@ -61,6 +61,7 @@ view > div.render {
   margin-top: 5px;
   max-width: 100%;
   overflow-x: hidden;
+  padding: 15px 3% 5px;
   text-align: left;
   width: 100%;
 }
@@ -72,6 +73,11 @@ view > div.render {
 
 #createClassInstructor {
   margin: 2px 0 10px 3%;
+}
+
+#createClassNotes {
+  margin-top: 10px;
+  margin-left: 5%;
 }
 
 #createInstructorAddress {
@@ -226,6 +232,11 @@ view > div.render {
   display: flex;
   width: 95%;
   flex-flow: row wrap;
+}
+
+#approveClassInfo {
+  margin-top: 10px;
+  margin-left: 5%;
 }
 
 .myButton {

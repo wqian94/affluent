@@ -547,8 +547,9 @@ const os = require('os');
         'Validating class address, please wait...';
       try{
         currentClass = await contracts.Class.at(event.target.value.trim());
-        get('approveClassInfo').innerHTML =
-          await classDescription(currentClass);
+        let description = await classDescription(currentClass);
+        let description_html = prettifyDescription(description);
+        get('approveClassInfo').innerHTML = description_html;
         get('approveClassActionApprove').removeAttribute('disabled');
         get('approveClassActionReject').removeAttribute('disabled');
       } catch (e) {
