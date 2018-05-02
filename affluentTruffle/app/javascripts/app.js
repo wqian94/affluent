@@ -164,7 +164,7 @@ const os = require('os');
     summary.innerHTML = createModalCard(
       'Class summary',
       '<div id="summaryDescription"></div><hr />' +
-      '<div id="latestCourseSession">Latest session:</div><hr />' +
+      '<div id="latestCourseSession"></div><hr />' +
       '<div id="courseManagementButtons">' +
       '<button id="enrollInCourse">Enroll</button>' +
       '<button id="deployNewSession">New session</button>' +
@@ -522,8 +522,19 @@ const os = require('os');
     const view = get('viewClass');
     viewActivate(view);
 
+    var instance = await instances.Class;
+    var latestSessionAddr = await instance.getLatestSession.call();
+    var latestSessionMessage;
+    if (latestSessionAddr == '0x0000000000000000000000000000000000000000') {
+      latestSessionMessage = "No feedback sessions deployed.";
+    } else {
+      const sess = await contracts.Session.at(latestSessionAddr);
+      latestSessionMessage = "";
+    }
+
     get('summaryDescription').innerHTML =
       await classDescription(instances.Class);
+    get('latestCourseSession').innerHTML = latestSessionMessage;
   };
 
   // Toggles to the main view

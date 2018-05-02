@@ -25,6 +25,8 @@ contract Class {
   question[] private questions;  // Questions list
   mapping (address => bool) private roster;  // Students enrolled in the class
   Session[] private sessions;  // Class sessions
+  Session private latestSession; // Latest course session
+
   string private label;  // Short title label, e.g. CS144r/244r
   string private term;  // Term, e.g. Spring 2018
   string private title;  // Title, e.g. Computer Networks
@@ -93,6 +95,10 @@ contract Class {
   function getSession(uint index) public view returns (Session) {
     require(index < numSessions());
     return sessions[index];
+  }
+
+  function getLatestSession() public view returns (Session) {
+    return latestSession;
   }
 
   // Returns the summary for the given response of the given question on the
