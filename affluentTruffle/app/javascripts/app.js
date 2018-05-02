@@ -81,6 +81,7 @@ const os = require('os');
       `Term: ${await cls.getTerm()}`;
   };
 
+  // Returns a DOM object for a modal
   const createModal = function(title, body, footer='') {
     const modal = document.createElement('div');
     modal.className = 'modal';
@@ -90,6 +91,7 @@ const os = require('os');
     return modal;
   };
 
+  // Returns a block of HTML that looks like a modal
   const createModalCard = function(title, body, footer='', full=false) {
     return '<div class="modal-dialog" role="document">' +
       '<div class="modal-content">' +
@@ -99,14 +101,27 @@ const os = require('os');
             full ? 
               '<button type="button" class="close" data-dismiss="modal"' +
                 '<span>&times;</span>' +
-              '</button>'
-            : ''
+              '</button>':
+              ''
           ) +
         '</div>' +
         `<div class="modal-body">${body}</div>` +
-        `<div class="modal-footer">${footer}</div>` +
+        (
+          footer.length ?
+            `<div class="modal-footer">${footer}</div>` :
+            ''
+        ) +
       '</div>' +
     '</div>';
+  };
+
+  // Returns a DOM object for a modal that self-destructs on close
+  const createModalEphemeral = function(title, body, footer='') {
+    const modal = createModal(title, body, footer);
+    $(modal).on('hidden.bs.modal', async (event) => {
+      modal.parentNode.removeChild(modal);
+    });
+    return modal;
   };
 
   // Syntactic sugar for document.getElementById
@@ -166,7 +181,8 @@ const os = require('os');
       '<div id="viewClassSummaryDescription"></div>' +
       '<hr />' +
       '<button id="viewClassSummaryFeedback">View feedback</button>&nbsp;' +
-      '<button id="viewClassSummaryReturnToMain">Go back</button>');
+      '<button id="viewClassSummaryReturnToMain">Go back</button>'
+    );
     view.appendChild(summary);
 
     get('viewClassSummaryReturnToMain').addEventListener('click', viewMain);
@@ -179,15 +195,102 @@ const os = require('os');
       '<button id="viewClassAdminDeactivate">Deactivate class</button>&nbsp;' +
       '<button id="viewClassAdminEnroll">Enroll students</button>&nbsp;' +
       '<button id="viewClassAdminNew">New session</button>&nbsp;' +
-      '<button id="viewClassAdminAdd">Add questions</button>'
+      '<button id="viewClassAdminAdd">Add questions</button>' +
+      '<hr />' +
+      '<select id="viewClassAdminSessions"></select>' +
+      '<button id="viewClassAdminSelectSession">Manage session</button>'
     );
     view.appendChild(admin);
 
     get('viewClassAdminActivate').addEventListener('click', async (event) => {
-      instances.Class.activate({from: account, gas:gas});
+      await instances.Class.activate({from: account, gas:gas});
+      viewClass();
     });
     get('viewClassAdminDeactivate').addEventListener('click', async (event) => {
       instances.Class.deactivate({from: account, gas:gas});
+      viewClass();
+    });
+
+    get('viewClassAdminAdd').addEventListener('click', async (event) => {
+      const modal = createModalEphemeral(
+        'Add questions',
+        'Enter each question on its own line below:' +
+        '<div>' +
+          '<textarea id="viewClassAdminAddInput"></textarea>' +
+        '</div>' +
+        '<div id="viewClassAdminAddNotes"></div>',
+        '<button id="viewClassAdminAddButton">Add questions</button>'
+      );
+      document.body.appendChild(modal);
+      get('viewClassAdminAddButton').addEventListener(
+        'click', async (event) => {
+          get('viewClassAdminAddNotes').innerHTML = '';
+          const questions = get('viewClassAdminAddInput').value.split('\n');
+          for (const question of questions) {
+            const text = question.trim();
+            try {
+              await instances.Class.newQuestion(
+                text, {from: account, gas: gas});
+              get('viewClassAdminAddNotes').innerHTML +=
+                `<div>"${text}" successfully added.</div>`;
+            } catch (e) {
+              get('viewClassAdminAddNotes').innerHTML +=
+                `<div>"${text}" could not be added.</div>`;
+            }
+          }
+          get('viewClassAdminAddInput').value = '';
+      });
+      $(modal).on('shown.bs.modal', async (event) => {
+        get('viewClassAdminAddInput').value = '';
+        get('viewClassAdminAddInput').focus();
+      });
+      $(modal).modal('show');
+    });
+    get('viewClassAdminEnroll').addEventListener('click', async (event) => {
+      const modal = createModalEphemeral(
+        'Enroll students',
+        'Enter each student\'s address on its own line below:' +
+        '<div>' +
+          '<textarea id="viewClassAdminEnrollInput"></textarea>' +
+        '</div>' +
+        '<div id="viewClassAdminEnrollNotes"></div>',
+        '<button id="viewClassAdminEnrollButton">Enroll students</button>'
+      );
+      document.body.appendChild(modal);
+      get('viewClassAdminEnrollButton').addEventListener(
+        'click', async (event) => {
+          get('viewClassAdminEnrollNotes').innerHTML = '';
+          const students = get('viewClassAdminEnrollInput').value.split('\n');
+          for (const student of students) {
+            const address = student.trim();
+            try {
+              await instances.Class.enroll(address, {from: account, gas: gas});
+              get('viewClassAdminEnrollNotes').innerHTML +=
+                `<div>${address} successfully enrolled.</div>`;
+            } catch (e) {
+              get('viewClassAdminEnrollNotes').innerHTML +=
+                `<div>${address} could not be enrolled.</div>`;
+            }
+          }
+          get('viewClassAdminEnrollInput').value = '';
+      });
+      $(modal).on('shown.bs.modal', async (event) => {
+        get('viewClassAdminEnrollInput').value = '';
+        get('viewClassAdminEnrollInput').focus();
+      });
+      $(modal).modal('show');
+    });
+    get('viewClassAdminNew').addEventListener('click', async (event) => {
+      instances.Class.newSession({from: account, gas: gas});
+    });
+    get('viewClassAdminSelectSession').addEventListener(
+      'click', async (event) => {
+        const session = await contracts.Session.at(
+          get('viewClassAdminSession').value.trim());
+        const modal = createModalEphemeral(
+          'Class session administration',
+          ''  // TODO: add stuff here
+        );
     });
   };
 
@@ -257,14 +360,15 @@ const os = require('os');
   const setupMainAdmin = async (ele) => {
     ele.innerHTML = createModalCard(
       'For administrators',
-      '<button id="approveClassButton">Approve classes</button>');
+      '<button id="approveClassButton">Approve classes</button>'
+    );
     setTimeout(function(){ele.className = 'render';}, 30);
 
     const modal = createModal(
       'Approve a new class',
       '<div>Class address: <input type="text" id="approveClassAdr" /></div>' +
       '<div id="approveClassInfo"></div>',
-      '<button id="approveClassActionValidate">Validate address</button>' +
+      '<button id="approveClassValidate">Validate address</button>' +
       '<button id="approveClassActionApprove">Approve class</button>' +
       '<button id="approveClassActionReject">Reject class</button>'
     );
@@ -281,7 +385,7 @@ const os = require('os');
       get('approveClassActionReject').setAttribute('disabled', '');
     });
     const onClassAddressChange = async (event) => {
-      get('approveClassActionValidate').setAttribute('disabled', '');
+      get('approveClassValidate').setAttribute('disabled', '');
       get('approveClassInfo').innerHTML =
         'Validating class address, please wait...';
       try{
@@ -295,14 +399,14 @@ const os = require('os');
         get('approveClassInfo').innerHTML = '';
         get('approveClassActionApprove').setAttribute('disabled', '');
         get('approveClassActionReject').setAttribute('disabled', '');
-        get('approveClassActionValidate').removeAttribute('disabled');
+        get('approveClassValidate').removeAttribute('disabled');
       }
     };
     get('approveClassAdr').addEventListener('change', onClassAddressChange);
-    get('approveClassActionValidate').addEventListener('click', onClassAddressChange);
+    get('approveClassValidate').addEventListener('click', onClassAddressChange);
 
-    $(modal).on("shown.bs.modal", async (event) => {
-      get("approveClassAdr").focus();
+    $(modal).on('shown.bs.modal', async (event) => {
+      get('approveClassAdr').focus();
     });
 
     get('approveClassActionApprove').addEventListener(
@@ -339,7 +443,8 @@ const os = require('os');
       '<div id="activeClasses"></div>' +
       '<hr />' +
       '<h5>Inactive classes</h5>' +
-      '<div id="inactiveClasses"></div>');
+      '<div id="inactiveClasses"></div>'
+    );
     setTimeout(function() {ele.className = 'render';}, 30);
 
     // Set up class creation modal
@@ -413,44 +518,6 @@ const os = require('os');
       }
     });
 
-    // Set up class management modal
-    const manageModal = createModal(
-      'Manage a class',
-      '<div id="manageClassBody"></div>',
-      '<div id="manageClassFooter"></div>'
-    );
-    document.body.appendChild(manageModal);
-    const manageClass = async (cls) => {
-      const instructor = await cls.getInstructor.call();
-      $(manageModal).modal('show');
-      get('manageClassBody').innerHTML = (await classDescription(cls)) +
-        '<hr />' +
-        'Enroll students with newline-separated addresses below:<br />' +
-        '<textarea id="manageClassEnroll"></textarea>' +
-        '<div id="manageClassEnrollNotes"></div>';
-      get('manageClassFooter').innerHTML =
-        '<button id="manageClassEnrollButton">Enroll students</button>' +
-        '<button id="manageClassViewSummaryButton">View summary</button>';
-      get('manageClassEnroll').style.height = '5em';
-      get('manageClassEnroll').style.width = '100%';
-      get('manageClassEnrollButton').addEventListener(
-        'click', async (event) => {
-          get('manageClassEnrollNotes').innerHTML = '';
-          const students = get('manageClassEnroll').value.split('\n');
-          for (const student of students) {
-            const address = student.trim();
-            try{
-              await cls.enroll(address, {from: instructor, gas: gas});
-              get('manageClassEnrollNotes').innerHTML +=
-                `<div>${address} successfully enrolled.</div>`;
-            } catch (e) {
-              get('manageClassEnrollNotes').innerHTML +=
-                `<div>${address} could not be enrolled.</div>`;
-            }
-          }
-      });
-    };
-
     const reader = taughtStream.getReader();
     const taughtStreamFunc = async ({done, value}) => {
       if (done) {
@@ -485,7 +552,8 @@ const os = require('os');
     const setupMainStudentFunc = function() {
       ele.innerHTML = createModalCard(
         'For students',
-        '<div id="enrolledClasses"></div>');
+        '<div id="enrolledClasses"></div>'
+      );
       setTimeout(function() {ele.className = 'render';}, 30);
     };
     const setupMainStudentStreamFunc = async ({done, value}) => {
@@ -563,6 +631,24 @@ const os = require('os');
       } else {
         get('viewClassAdminDeactivate').style.display = 'none';
         get('viewClassAdminActivate').style.display = '';
+      }
+
+      // Add session options
+      {
+        const numSessions = await instances.Class.numSessions.call();
+        for (var i = 0; i < numSessions; i++) {
+          const option = document.createElement('option');
+          option.value = await instances.Class.getSession.call(i);
+          option.textContent = 'Session ' + (i + 1).toString();
+          if (i) {
+            get('viewClassAdminSessions').insertBefore(
+              option, get('viewClassAdminSessions').childNodes[0]
+            );
+          } else {
+            get('viewClassAdminSessions').appendChild(option);
+          }
+        }
+        get('viewClassAdminSessions').selectedIndex = 0;
       }
     } else {
       get('viewClassAdmin').className = '';

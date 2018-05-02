@@ -128,7 +128,14 @@ view > div.render {
   width: 80%;
 }
 
-#viewClassAdmin button {
+#viewClassAdminAddInput,
+#viewClassAdminEnrollInput {
+  height: 5em;
+  width: 100%;
+}
+
+#viewClassAdmin button,
+#viewClassSummary button {
   flex: 0 40%;
   margin: 5px 2%;
 }

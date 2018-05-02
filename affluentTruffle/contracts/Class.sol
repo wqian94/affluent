@@ -133,6 +133,7 @@ contract Class {
 
   // Creates a new question entry.
   function newQuestion(string text) public {
+    adminOnly();
     uint index = questions.length++;
     questions[index].index = index;
     questions[index].text = text;
