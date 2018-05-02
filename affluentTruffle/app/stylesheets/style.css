@@ -119,6 +119,32 @@ view > div.render {
   overflow-y: scroll;
 }
 
+#createInstructorAddress {
+  margin-left: 2%;
+}
+#createClassInstructor {
+  margin: 2px 0 10px 3%;
+}
+
+.inputFormWrapper {
+  display: flex;
+  width: 95%;
+  flex-flow: row wrap;
+}
+
+.createLabel {
+  flex: 0 30%;
+  margin: 4px 10% 4px 5%;
+  
+}
+.createInputHolder {
+  flex: 0 50%;
+  margin: 2px 2% 2px 0px;
+}
+.createInputHolder input {
+  width: 100%;
+}
+
 #viewClassAdmin {
   display: flex;
   flex-flow: row wrap;
@@ -132,8 +158,16 @@ view > div.render {
   min-width: 500px;
 }
 
-#viewClassAdmin button {
-  width: 45%;
+#viewClassAdminAddInput,
+#viewClassAdminEnrollInput {
+  height: 5em;
+  width: 100%;
+}
+
+#viewClassAdmin button,
+#viewClassSummary button {
+  flex: 0 40%;
+  margin: 5px 2%;
 }
 
 #viewClassSummaryDescription {
