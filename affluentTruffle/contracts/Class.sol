@@ -25,7 +25,6 @@ contract Class {
   question[] private questions;  // Questions list
   mapping (address => bool) private roster;  // Students enrolled in the class
   Session[] private sessions;  // Class sessions
-  Session private latestSession; // Latest course session
 
   string private label;  // Short title label, e.g. CS144r/244r
   string private term;  // Term, e.g. Spring 2018
@@ -97,10 +96,6 @@ contract Class {
     return sessions[index];
   }
 
-  function getLatestSession() public view returns (Session) {
-    return latestSession;
-  }
-
   // Returns the summary for the given response of the given question on the
   // given day. The option is the response requested, qindex is the index of the
   // question within the class, and sindex is the session index.
@@ -149,8 +144,6 @@ contract Class {
     Session s = new Session(this);
     uint index = sessions.push(s) - 1;
     emit NewSession(s, index);
-
-    latestSession = s;
   }
 
   // Returns the number of questions available in the class.

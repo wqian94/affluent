@@ -108,7 +108,7 @@ const os = require('os');
       '</div>' +
     '</div>';
   };
-    
+
   // Syntactic sugar for document.getElementById
   const get = function(id) {
     return document.getElementById(id);
@@ -163,21 +163,31 @@ const os = require('os');
     summary.className = 'render';
     summary.innerHTML = createModalCard(
       'Class summary',
-      '<div id="summaryDescription"></div><hr />' +
-      '<div id="latestCourseSession"></div><hr />' +
-      '<div id="courseManagementButtons">' +
-      '<button id="activateCourse">Activate course</button>' +
-      '<button id="enrollInCourse">Enroll</button>' +
-      '<button id="deployNewSession">New session</button>' +
-      '<button id="addQuestions">Add questions</button>' +
-      '<button id="viewFeedback">View feedback</button></div>');
-
+      '<div id="viewClassSummaryDescription"></div>' +
+      '<hr />' +
+      '<button id="viewClassSummaryFeedback">View feedback</button>&nbsp;' +
+      '<button id="viewClassSummaryReturnToMain">Go back</button>');
     view.appendChild(summary);
 
-    get('activateCourse').addEventListener('click', async () => {
-      const addr = get('activateCourse').getAttribute("name");
-      const cls = contracts.Class.at(addr);  
-      await cls.activate({from: await cls.getInstructor.call(), gas:gas});
+    get('viewClassSummaryReturnToMain').addEventListener('click', viewMain);
+
+    const admin = document.createElement('div');
+    admin.id = 'viewClassAdmin';
+    admin.innerHTML = createModalCard(
+      'Class administration',
+      '<button id="viewClassAdminActivate">Activate class</button>&nbsp;' +
+      '<button id="viewClassAdminDeactivate">Deactivate class</button>&nbsp;' +
+      '<button id="viewClassAdminEnroll">Enroll students</button>&nbsp;' +
+      '<button id="viewClassAdminNew">New session</button>&nbsp;' +
+      '<button id="viewClassAdminAdd">Add questions</button>'
+    );
+    view.appendChild(admin);
+
+    get('viewClassAdminActivate').addEventListener('click', async (event) => {
+      instances.Class.activate({from: account, gas:gas});
+    });
+    get('viewClassAdminDeactivate').addEventListener('click', async (event) => {
+      instances.Class.deactivate({from: account, gas:gas});
     });
   };
 
@@ -186,6 +196,9 @@ const os = require('os');
     for (const child of view.childNodes) {
       view.removeChild(child);
     }
+
+    // Setup logo clicking
+    get('logo').addEventListener('click', viewMain);
 
     // Admin UI
     const amAdmin = isMyAccount(await instances.Affluent.admin());
@@ -251,7 +264,7 @@ const os = require('os');
       'Approve a new class',
       '<div>Class address: <input type="text" id="approveClassAdr" /></div>' +
       '<div id="approveClassInfo"></div>',
-      '<button id="validateClassInfo">Validate address</button>' +
+      '<button id="approveClassActionValidate">Validate address</button>' +
       '<button id="approveClassActionApprove">Approve class</button>' +
       '<button id="approveClassActionReject">Reject class</button>'
     );
@@ -268,25 +281,25 @@ const os = require('os');
       get('approveClassActionReject').setAttribute('disabled', '');
     });
     const onClassAddressChange = async (event) => {
-      get('validateClassInfo').setAttribute('disabled', '');
-      get('approveClassInfo').innerHTML = 'Validating class address, please wait...';
+      get('approveClassActionValidate').setAttribute('disabled', '');
+      get('approveClassInfo').innerHTML =
+        'Validating class address, please wait...';
       try{
-        currentClass = await contracts.Class.at(event.target.value);
-        var description =  await classDescription(currentClass); // TODO: validate description is valid
-        get('approveClassInfo').innerHTML = description;
+        currentClass = await contracts.Class.at(event.target.value.trim());
+        get('approveClassInfo').innerHTML =
+          await classDescription(currentClass);
         get('approveClassActionApprove').removeAttribute('disabled');
         get('approveClassActionReject').removeAttribute('disabled');
-      
       } catch (e) {
         currentClass = null;
         get('approveClassInfo').innerHTML = '';
         get('approveClassActionApprove').setAttribute('disabled', '');
         get('approveClassActionReject').setAttribute('disabled', '');
-        get('validateClassInfo').removeAttribute('disabled');
+        get('approveClassActionValidate').removeAttribute('disabled');
       }
     };
     get('approveClassAdr').addEventListener('change', onClassAddressChange);
-    get('validateClassInfo').addEventListener('click', onClassAddressChange);
+    get('approveClassActionValidate').addEventListener('click', onClassAddressChange);
 
     $(modal).on("shown.bs.modal", async (event) => {
       get("approveClassAdr").focus();
@@ -537,18 +550,27 @@ const os = require('os');
   };
   const viewClass = async () => {
     const view = get('viewClass');
-    viewActivate(view);
 
-    var instance = await instances.Class;
-    var latestSessionAddr = await instance.getLatestSession.call();
-    var latestSessionMessage; 
-    if (latestSessionAddr == '0x0000000000000000000000000000000000000000') {
-      latestSessionMessage = "No feedback sessions deployed.";
+    get('viewClassSummaryDescription').innerHTML =
+      `${await classDescription(instances.Class)}<br />` +
+      `Status: ${(await instances.Class.isActive()) ? 'Active' : 'Inactive'}`;
+
+    if (roleInstructor == role) {
+      get('viewClassAdmin').className = 'render';
+      if (await instances.Class.isActive()) {
+        get('viewClassAdminActivate').style.display = 'none';
+        get('viewClassAdminDeactivate').style.display = '';
+      } else {
+        get('viewClassAdminDeactivate').style.display = 'none';
+        get('viewClassAdminActivate').style.display = '';
+      }
     } else {
-      const sess = await contracts.Session.at(latestSessionAddr);
-      latestSessionMessage = '<button id="giveCourseFeedback">Give Feedback</button>';
+      get('viewClassAdmin').className = '';
     }
 
+    viewActivate(view);
+
+    /*
     var description = await classDescription(instances.Class);
     var description_html = prettifyDescription(description);
     var active = await instance.isActive.call();
@@ -559,6 +581,15 @@ const os = require('os');
       `<h3 class="courseActive">${active_text}</h3>` + description_html;
     get('latestCourseSession').innerHTML = latestSessionMessage;
     get('activateCourse').setAttribute('name', instance.address.toString());
+    const latestSessionAddr = await instances.Class.getLatestSession.call();
+    console.log(0 < latestSessionAddr);
+    if (latestSessionAddr == '0x0000000000000000000000000000000000000000') {
+      get('latestCourseSession').innerHTML = "No feedback sessions deployed.";
+    } else {
+      const sess = await contracts.Session.at(latestSessionAddr);
+      get('latestCourseSession').innerHTML =
+        '<button id="giveCourseFeedback">Give Feedback</button>';
+    }*/
   };
 
   // Toggles to the main view
