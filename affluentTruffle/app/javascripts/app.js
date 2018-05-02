@@ -164,6 +164,7 @@ const os = require('os');
     summary.innerHTML = createModalCard(
       'Class summary',
       '<div id="summaryDescription"></div><hr />' +
+      '<div id="latestCourseSession">Latest session:</div><hr />' +
       '<div id="courseManagementButtons">' +
       '<button id="enrollInCourse">Enroll</button>' +
       '<button id="deployNewSession">New session</button>' +
@@ -269,7 +270,6 @@ const os = require('os');
         get('approveClassInfo').innerHTML = description;
         get('approveClassActionApprove').removeAttribute('disabled');
         get('approveClassActionReject').removeAttribute('disabled');
-        console.log('here');
       
       } catch (e) {
         currentClass = null;
@@ -289,7 +289,6 @@ const os = require('os');
     get('approveClassActionApprove').addEventListener(
       'click', async (event) => {
         if (currentClass) {
-          console.log(currentClass.address);
           instances.Affluent.activate(
             currentClass.address,
             {from: await instances.Affluent.admin(), gas: gas});
@@ -440,10 +439,6 @@ const os = require('os');
       }
 
       const cls = value;
-      console.log("here");
-      console.log(value);
-      let test = await cls.isActive.call();
-      console.log(test);
       const parent = (await cls.isActive.call()) ?
         get('activeClasses') : get('inactiveClasses');
       const b = document.createElement('button');
