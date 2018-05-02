@@ -25,6 +25,13 @@ const os = require('os');
     Session: contract(artifacts.Session),
   };
 
+  // Our event filters are stored here
+  const events = {
+    Affluent: {},
+    Class: {},
+    Session: {},
+  };
+
   //////////////////////////////////////////////////////////////////////////////
   //
   // Variables
@@ -151,6 +158,23 @@ const os = require('os');
     return q;
   };
 
+  const prettifyDescription = function(description, headline='h4') {
+    const lines = description.split('<br />');
+    var pretty = "";
+    for (const line of lines) {
+      const parts = line.split(':');
+      pretty += '<div class="descriptionLine">' +
+          `<${headline}>${parts[0].toString()}</${headline}>` +
+          `<div class="descriptionInfo">${parts[1].toString()}</div>` +
+        '</div>' ;
+    };
+    return pretty;
+  };
+
+  const replot = async () => {
+    Plotly.newPlot('viewSummary', plotData, plotLayout);
+  };
+
   const setup = async () => {
     // Bootstrap the contracts for Use.
     for (const key in contracts) {
@@ -201,7 +225,6 @@ const os = require('os');
       '<button id="viewClassAdminAdd">Add questions</button>' +
       '<hr />' +
       '<select id="viewClassAdminSessions"></select>' +
-      '<hr />' +
       '<button id="viewClassAdminSelectSession">Manage session</button>'
     );
     view.appendChild(admin);
@@ -209,10 +232,30 @@ const os = require('os');
     get('viewClassAdminActivate').addEventListener('click', async (event) => {
       await instances.Class.activate({from: account, gas:gas});
       viewClass();
+      const ele = get('viewMainClassButton' + instances.Class.address);
+      const newParent = get('activeClasses');
+      if (ele) {
+        ele.parentNode.removeChild(ele);
+        if (newParent.childNodes.length) {
+          newParent.insertBefore(ele, newParent.childNodes[0]);
+        } else {
+          newParent.appendChild(ele);
+        }
+      }
     });
     get('viewClassAdminDeactivate').addEventListener('click', async (event) => {
       instances.Class.deactivate({from: account, gas:gas});
       viewClass();
+      const ele = get('viewMainClassButton' + instances.Class.address);
+      const newParent = get('inactiveClasses');
+      if (ele) {
+        ele.parentNode.removeChild(ele);
+        if (newParent.childNodes.length) {
+          newParent.insertBefore(ele, newParent.childNodes[0]);
+        } else {
+          newParent.appendChild(ele);
+        }
+      }
     });
 
     get('viewClassAdminAdd').addEventListener('click', async (event) => {
@@ -289,13 +332,87 @@ const os = require('os');
     });
     get('viewClassAdminSelectSession').addEventListener(
       'click', async (event) => {
+        if (!get('viewClassAdminSessions').value.length) {
+          alert('Create a new session first!');
+          return;
+        }
+        const session_index = parseInt(
+          get('viewClassAdminSessions').value.trim());
         const session = await contracts.Session.at(
-          get('viewClassAdminSession').value.trim());
+          await instances.Class.getSession.call(session_index));
         const modal = createModalEphemeral(
           'Class session administration',
-          ''  // TODO: add stuff here
+          createModalCard(
+            'Class session summary',
+            prettifyDescription(
+              `${await instances.Class.getLabel.call()}: ` +
+              `${await instances.Class.getTitle.call()}<br />` +
+              `Term: ${await instances.Class.getTerm.call()}`
+            ) +
+            `<h5>Session ${session_index + 1}</h5>`
+          ) +
+          createModalCard(
+            'Administration',
+            'Responses allowed: <span id="viewClassAdminResponse">' +
+              (await session.isLocked.call() ? 'no' : 'yes') +
+            '</span> ' +
+            '<button id="viewClassAdminResponseButton">Toggle</button><hr />' +
+            'Enqueue a question:<br />' +
+            '<select id="viewClassAdminQuestionSelect" size="5"></select>' +
+            '<button id="viewClassAdminQuestionButton">Enqueue</button><hr />' +
+            'Current questions:' +
+            '<ol id="viewClassAdminQuestions"></ol>'
+          )
         );
-    });
+        $(modal).modal('show');
+        get('viewClassAdminResponseButton').addEventListener(
+          'click', async (event) => {
+            if (await session.isLocked.call()) {
+              await session.unlock({from: account, gas: gas});
+              get('viewClassAdminResponse').textContent = 'yes';
+            } else {
+              await session.lock({from: account, gas: gas});
+              get('viewClassAdminResponse').textContent = 'no';
+            }
+          }
+        );
+        get('viewClassAdminQuestionButton').addEventListener(
+          'click', async (event) => {
+            const index = get('viewClassAdminQuestionSelect').value;
+            if (index) {
+              await session.addQuestion(index, {from: account, gas: gas});
+              const li = document.createElement('li');
+              li.textContent =
+                await instances.Class.getQuestionText.call(index);
+              get('viewClassAdminQuestions').appendChild(li);
+            }
+          }
+        );
+
+        // Add questions to our possibilities
+        {
+          const numQuestions = await instances.Class.numQuestions.call();
+          for (var i = 0; i < numQuestions; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = await instances.Class.getQuestionText.call(i);
+            get('viewClassAdminQuestionSelect').appendChild(option);
+          }
+        }
+
+        // Display currently-added questions
+        {
+          const numQuestions = await session.numQuestions.call(
+            {from: account, gas: gas});
+          for (var i = 0; i < numQuestions; i++) {
+            const li = document.createElement('li');
+            li.textContent = await instances.Class.getQuestionText.call(
+              await session.getQuestionIndex.call(i,{from: account, gas: gas}));
+            get('viewClassAdminQuestions').appendChild(li);
+          }
+        }
+      }
+    );
   };
 
   const setupMain = async () => {
@@ -349,10 +466,12 @@ const os = require('os');
       if (isMyAccount(await cls.getInstructor.call())) {
         taughtStreamController.enqueue(cls);
       }
-      for (const acct of accounts) {
-        if (await cls.isEnrolled.call(acct)) {
-          enrolledStreamController.enqueue({cls: cls, acct: acct});
-          break;
+      if (await cls.isActive.call()) {
+        for (const acct of accounts) {
+          if (await cls.isEnrolled.call(acct)) {
+            enrolledStreamController.enqueue({cls: cls, acct: acct});
+            break;
+          }
         }
       }
     }
@@ -446,9 +565,11 @@ const os = require('os');
       '<button id="createClassButton">Create a class</button>' +
       '<hr />' +
       '<h5>Active classes</h5>' +
+      '<div id="activeClassesLoading">Loading...</div>' +
       '<div id="activeClasses"></div>' +
       '<hr />' +
       '<h5>Inactive classes</h5>' +
+      '<div id="inactiveClassesLoading">Loading...</div>' +
       '<div id="inactiveClasses"></div>'
     );
     setTimeout(function() {ele.className = 'render';}, 30);
@@ -528,6 +649,14 @@ const os = require('os');
     const reader = taughtStream.getReader();
     const taughtStreamFunc = async ({done, value}) => {
       if (done) {
+        if (get('activeClassesLoading')) {
+          get('activeClassesLoading').parentNode.removeChild(
+            get('activeClassesLoading'));
+        }
+        if (get('inactiveClassesLoading')) {
+          get('inactiveClassesLoading').parentNode.removeChild(
+            get('inactiveClassesLoading'));
+        }
         return;
       }
 
@@ -535,7 +664,8 @@ const os = require('os');
       const parent = (await cls.isActive.call()) ?
         get('activeClasses') : get('inactiveClasses');
       const b = document.createElement('button');
-      b.innerHTML = await classDescription(cls);
+      b.id = 'viewMainClassButton' + cls.address;
+      b.innerHTML = prettifyDescription(await classDescription(cls), 'h5');
       b.addEventListener('click', async (event) => {
         instances.Class = cls;
         account = await cls.getInstructor.call();
@@ -559,12 +689,17 @@ const os = require('os');
     const setupMainStudentFunc = function() {
       ele.innerHTML = createModalCard(
         'For students',
+        '<div id="enrolledClassesLoading">Loading...</div>' +
         '<div id="enrolledClasses"></div>'
       );
       setTimeout(function() {ele.className = 'render';}, 30);
     };
     const setupMainStudentStreamFunc = async ({done, value}) => {
       if (done) {
+        if (get('enrolledClassesLoading')) {
+          get('enrolledClassesLoading').parentNode.removeChild(
+            get('enrolledClassesLoading'));
+        }
         return;
       }
 
@@ -572,7 +707,7 @@ const os = require('os');
       const cls = value.cls;
 
       const b = document.createElement('button');
-      b.innerHTML = await classDescription(cls);
+      b.innerHTML = prettifyDescription(await classDescription(cls), 'h5');
       b.addEventListener('click', async (event) => {
         instances.Class = cls;
         account = acct;
@@ -612,21 +747,15 @@ const os = require('os');
   };
 
   // Toggles to the class view
-  const prettifyDescription = function(description) {
-    var lines = description.split('<br />');
-    var pretty = "";
-    lines.forEach(function(line) {
-      var parts = line.split(':');
-      pretty += '<div class="descriptionLine"><h4>' + parts[0].toString() +
-                '</h4><div class="descriptionInfo">' + parts[1].toString() + 
-                '</div></div>' 
-    })
-    return pretty
-  };
   const viewClass = async () => {
     const view = get('viewClass');
 
-    const description = await classDescription(instances.Class)
+    for (const key in events.Class) {
+      events.Class[key].stopWatching();
+      delete events.Class[key];
+    }
+
+    const description = await classDescription(instances.Class);
     const active = await instances.Class.isActive.call();
     get('viewClassSummaryDescription').innerHTML =
       `${prettifyDescription(description)}<br />` +
@@ -644,10 +773,13 @@ const os = require('os');
 
       // Add session options
       {
+        for (const child of get('viewClassAdminSessions').childNodes) {
+          get('viewClassAdminSessions').removeChild(child);
+        }
         const numSessions = await instances.Class.numSessions.call();
         for (var i = 0; i < numSessions; i++) {
           const option = document.createElement('option');
-          option.value = await instances.Class.getSession.call(i);
+          option.value = i.toString();
           option.textContent = 'Session ' + (i + 1).toString();
           if (i) {
             get('viewClassAdminSessions').insertBefore(
@@ -658,33 +790,31 @@ const os = require('os');
           }
         }
         get('viewClassAdminSessions').selectedIndex = 0;
+        events.Class.NewSession = instances.Class.NewSession();
+        events.Class.NewSession.watch(async (err, result) => {
+          if (!err) {
+            const index = result.args.index.toNumber();
+            if (index >= get('viewClassAdminSessions').options.length) {
+              const option = document.createElement('option');
+              option.value = index.toString();
+              option.textContent = 'Session ' + (index + 1).toString();
+              if (index) {
+                get('viewClassAdminSessions').insertBefore(
+                  option, get('viewClassAdminSessions').childNodes[0]
+                );
+              } else {
+                get('viewClassAdminSessions').appendChild(option);
+              }
+              get('viewClassAdminSessions').selectedIndex = 0;
+            }
+          }
+        });
       }
     } else {
       get('viewClassAdmin').className = '';
     }
 
     viewActivate(view);
-
-    /*
-    var description = await classDescription(instances.Class);
-    var description_html = prettifyDescription(description);
-    var active = await instance.isActive.call();
-
-    var active_text = active ? "Active" : "Not Active"; 
-
-    get('summaryDescription').innerHTML = 
-      `<h3 class="courseActive">${active_text}</h3>` + description_html;
-    get('latestCourseSession').innerHTML = latestSessionMessage;
-    get('activateCourse').setAttribute('name', instance.address.toString());
-    const latestSessionAddr = await instances.Class.getLatestSession.call();
-    console.log(0 < latestSessionAddr);
-    if (latestSessionAddr == '0x0000000000000000000000000000000000000000') {
-      get('latestCourseSession').innerHTML = "No feedback sessions deployed.";
-    } else {
-      const sess = await contracts.Session.at(latestSessionAddr);
-      get('latestCourseSession').innerHTML =
-        '<button id="giveCourseFeedback">Give Feedback</button>';
-    }*/
   };
 
   // Toggles to the main view
@@ -699,9 +829,7 @@ const os = require('os');
   //////////////////////////////////////////////////////////////////////////////
 
   window.App = {
-    replot: async () => {
-      Plotly.newPlot('summaryView', plotData, plotLayout);
-    },
+    replot: replot,
     start: function() {
       app = this;  // Prevent external maliciousness by reassigning window.App
 

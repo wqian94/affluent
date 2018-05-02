@@ -50,7 +50,7 @@ contract Class {
 
   // Checks whether the current message's sender has administrative privileges,
   // and if not, throws an assertoin error.
-  function adminOnly() public view returns (bool) {
+  function adminOnly() private view {
     require(isAdmin());
   }
 

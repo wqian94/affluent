@@ -35,7 +35,7 @@ contract Session {
   // Append a question to the current list of questions, based on its given
   // index in the parent class.
   function addQuestion(uint index) public {
-    class.adminOnly();
+    adminOnly();
     uint qindex = questions.length++;
     questions[qindex].index = index;
 
@@ -49,6 +49,11 @@ contract Session {
         }
       }
     }
+  }
+
+  // Restricts administrative rights to this contract
+  function adminOnly() private view {
+    require(msg.sender == instructor);
   }
 
   // Signs the student (msg.sender) up for attendance in the current class.
@@ -74,6 +79,12 @@ contract Session {
     return class;
   }
 
+  // Returns the index in Class for the given Session question index
+  function getQuestionIndex(uint sindex) public view returns (uint) {
+    adminOnly();
+    return questions[sindex].index;
+  }
+
   // Returns the response count for the given question and response type.
   function getQuestionResponse(bool option, uint qindex) public view returns
       (uint count) {
@@ -92,8 +103,14 @@ contract Session {
 
   // Locks the Session to halt any voting.
   function lock() public {
-    class.adminOnly();
+    adminOnly();
     locked = true;
+  }
+
+  // Returns the number of questions
+  function numQuestions() public view returns (uint) {
+    adminOnly();
+    return questions.length;
   }
 
   // Submits a student's response.
@@ -113,7 +130,7 @@ contract Session {
 
   // Unlocks the Session to re-allow voting.
   function unlock() public {
-    class.adminOnly();
+    adminOnly();
     locked = false;
     for (uint i = 0; i < attendance.length; i++) {
       if (progress[attendance[i]] < questions.length) {

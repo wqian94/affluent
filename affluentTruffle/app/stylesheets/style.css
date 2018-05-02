@@ -57,12 +57,21 @@ view > div.render {
   margin-top: 5px;
   max-width: 100%;
   overflow-x: hidden;
+  text-align: left;
   width: 100%;
 }
 
 #addQuestionModalText {
   height: 300px;
   width: 100%;
+}
+
+#createClassInstructor {
+  margin: 2px 0 10px 3%;
+}
+
+#createInstructorAddress {
+  margin-left: 2%;
 }
 
 #existingUserAddress {
@@ -119,32 +128,6 @@ view > div.render {
   overflow-y: scroll;
 }
 
-#createInstructorAddress {
-  margin-left: 2%;
-}
-#createClassInstructor {
-  margin: 2px 0 10px 3%;
-}
-
-.inputFormWrapper {
-  display: flex;
-  width: 95%;
-  flex-flow: row wrap;
-}
-
-.createLabel {
-  flex: 0 30%;
-  margin: 4px 10% 4px 5%;
-  
-}
-.createInputHolder {
-  flex: 0 50%;
-  margin: 2px 2% 2px 0px;
-}
-.createInputHolder input {
-  width: 100%;
-}
-
 #viewClassAdmin {
   display: flex;
   flex-flow: row wrap;
@@ -168,6 +151,17 @@ view > div.render {
 #viewClassSummary button {
   flex: 0 40%;
   margin: 5px 2%;
+}
+
+#viewClassAdminQuestionSelect {
+  display: block;
+  width: 100%;
+}
+
+#viewclassAdminQuestions {
+  display: block;
+  list-style-type: arabic;
+  width: 100%;
 }
 
 #viewClassSummaryDescription {
@@ -200,9 +194,30 @@ view > div.render {
   margin-bottom: 15px;
 }
 
+.createLabel {
+  flex: 0 30%;
+  margin: 4px 10% 4px 5%;
+  
+}
+
+.createInputHolder {
+  flex: 0 50%;
+  margin: 2px 2% 2px 0px;
+}
+
+.createInputHolder input {
+  width: 100%;
+}
+
 .descriptionInfo {
   margin-left: 5%;
   margin-bottom: 10px;
+}
+
+.inputFormWrapper {
+  display: flex;
+  width: 95%;
+  flex-flow: row wrap;
 }
 
 .myButton {
