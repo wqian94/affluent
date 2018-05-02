@@ -216,19 +216,51 @@ const os = require('os');
     admin.id = 'viewClassAdmin';
     admin.innerHTML = createModalCard(
       'Class administration',
-      '<button id="viewClassAdminActivate">Activate class</button>&nbsp;' +
-      '<button id="viewClassAdminDeactivate">Deactivate class</button>&nbsp;' +
-      '<hr />' +
-      '<button id="viewClassAdminEnroll">Enroll students</button>&nbsp;' +
-      '<hr />' +
-      '<button id="viewClassAdminNew">New session</button>&nbsp;' +
-      '<hr />' +
-      '<button id="viewClassAdminAdd">Add questions</button>' +
-      '<hr />' +
-      '<select id="viewClassAdminSessions"></select>' +
-      '<button id="viewClassAdminSelectSession">Manage session</button>'
+      '<div class="infoText"><div id="activateInfo">Activate the course if it is currently being taught.</div>' +
+      '<button id="activateInfoShow" class="infoButton">i</button>' +
+      '<button id="viewClassAdminActivate" class="courseAdminButton">Activate class</button>' +
+      '<button id="viewClassAdminDeactivate" class="courseAdminButton">Deactivate class</button>' +
+      '</div><hr />' +
+      '<div class="infoText"><div id="enrollmentInfo">Enter the public addresses of accounts ' +
+      'that can give feedback in the course.</div>' +
+      '<button id="enrollmentInfoShow" class="infoButton">i</button>' +
+      '<button id="viewClassAdminEnroll" class="courseAdminButton">Enroll students</button>' +
+      '</div><hr />' +
+      '<div class="infoText"><div id="addQuestionsInfo">Create a list of questions for this course. Select from this list of questions when setting up a new feedback session.</div>' +
+      '<button id="addQuestionsInfoShow" class="infoButton">i</button>' +
+      '<button id="viewClassAdminAdd" class="courseAdminButton">Add questions</button>' +
+      '</div><hr />' +
+      '<div class="infoText"><div id="newSessionInfo">Creates a new feedback session, which allows students to give feedback through instructor specified questions about one lecture or seminar.</div>' +
+      '<button id="newSessionInfoShow" class="infoButton">i</button>' +
+      '<button id="viewClassAdminNew" class="courseAdminButton">New session</button>' +
+      '</div><hr />' +
+      '<div class="infoText"><div id="manageSessionInfo">Manage a feedback session: select questions to be answered by students; allow or stop allowing feedback</div>' +
+      '<button id="manageSessionInfoShow" class="infoButton">i</button>' +
+      '<select id="viewClassAdminSessions" class="courseAdminButton"></select>' +
+      '<button id="viewClassAdminSelectSession" class="courseAdminButton">Manage session</button></div>'
     );
     view.appendChild(admin);
+
+    get('activateInfoShow').addEventListener('click', async (event) => {
+      var displayed = get("activateInfo").style.display;
+      get("activateInfo").style.display = (!displayed || displayed == 'none') ? 'block' : 'none';
+    });
+    get('enrollmentInfoShow').addEventListener('click', async (event) => {
+      var displayed = get("enrollmentInfo").style.display;
+      get("enrollmentInfo").style.display = (!displayed || displayed == 'none') ? 'block' : 'none';
+    });
+    get('addQuestionsInfoShow').addEventListener('click', async (event) => {
+      var displayed = get("addQuestionsInfo").style.display;
+      get("addQuestionsInfo").style.display = (!displayed || displayed == 'none') ? 'block' : 'none';
+    });
+    get('newSessionInfoShow').addEventListener('click', async (event) => {
+      var displayed = get("newSessionInfo").style.display;
+      get("newSessionInfo").style.display = (!displayed || displayed == 'none') ? 'block' : 'none';
+    });
+    get('manageSessionInfoShow').addEventListener('click', async (event) => {
+      var displayed = get("manageSessionInfo").style.display;
+      get("manageSessionInfo").style.display = (!displayed || displayed == 'none') ? 'block' : 'none';
+    });
 
     const student = document.createElement('div');
     student.id = 'viewClassStudent';
