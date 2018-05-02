@@ -1,4 +1,4 @@
-Steps:
+Deployment steps:
 
 1. ./config.js (this synchronizes configurations)
 2. ./ganache.js (this starts up Ganache)

@@ -1,4 +1,4 @@
-# AFFLUENT
+# affluent.
 
 Welcome to Affluent (A Faster Feedback Loop Using Encrypted Network Technology)! This tool, built on the Ethereum blockchain, allows students to give instructional feedback in their classes while preserving their anonymity.
 
