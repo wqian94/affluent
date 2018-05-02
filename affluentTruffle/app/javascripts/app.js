@@ -266,7 +266,6 @@ const os = require('os');
       get('approveClassInfo').innerHTML = '';
       get('approveClassActionApprove').setAttribute('disabled', '');
       get('approveClassActionReject').setAttribute('disabled', '');
-      get('approveClassActionApprove').removeAttribute('disabled');
     });
     const onClassAddressChange = async (event) => {
       get('validateClassInfo').setAttribute('disabled', '');
@@ -283,7 +282,7 @@ const os = require('os');
         get('approveClassInfo').innerHTML = '';
         get('approveClassActionApprove').setAttribute('disabled', '');
         get('approveClassActionReject').setAttribute('disabled', '');
-        get('approveClassActionApprove').removeAttribute('disabled');
+        get('validateClassInfo').removeAttribute('disabled');
       }
     };
     get('approveClassAdr').addEventListener('change', onClassAddressChange);
@@ -525,13 +524,24 @@ const os = require('os');
   };
 
   // Toggles to the class view
+  const prettifyDescription = function(description) {
+    var lines = description.split('<br />');
+    var pretty = "";
+    lines.forEach(function(line) {
+      var parts = line.split(':');
+      pretty += '<div class="descriptionLine"><h4>' + parts[0].toString() +
+                '</h4><div class="descriptionInfo">' + parts[1].toString() + 
+                '</div></div>' 
+    })
+    return pretty
+  };
   const viewClass = async () => {
     const view = get('viewClass');
     viewActivate(view);
 
     var instance = await instances.Class;
     var latestSessionAddr = await instance.getLatestSession.call();
-    var latestSessionMessage;
+    var latestSessionMessage; 
     if (latestSessionAddr == '0x0000000000000000000000000000000000000000') {
       latestSessionMessage = "No feedback sessions deployed.";
     } else {
@@ -539,9 +549,14 @@ const os = require('os');
       latestSessionMessage = '<button id="giveCourseFeedback">Give Feedback</button>';
     }
 
+    var description = await classDescription(instances.Class);
+    var description_html = prettifyDescription(description);
+    var active = await instance.isActive.call();
 
-    get('summaryDescription').innerHTML =
-      await classDescription(instances.Class);
+    var active_text = active ? "Active" : "Not Active"; 
+
+    get('summaryDescription').innerHTML = 
+      `<h3 class="courseActive">${active_text}</h3>` + description_html;
     get('latestCourseSession').innerHTML = latestSessionMessage;
     get('activateCourse').setAttribute('name', instance.address.toString());
   };

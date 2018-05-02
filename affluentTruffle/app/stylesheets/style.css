@@ -163,6 +163,20 @@ view > div.render {
   top:1px;
 }
 
+#summaryDescription {
+  text-align: left;
+  padding-left: 2%;
+}
+
+.courseActive {
+  margin-bottom: 15px;
+}
+
+.descriptionInfo {
+  margin-left: 5%;
+  margin-bottom: 10px;
+}
+
 #courseManagementButtons {
   display: flex;
   flex-flow: row wrap;
