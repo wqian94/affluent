@@ -163,6 +163,16 @@ view > div.render {
   top:1px;
 }
 
-#summaryDescription {
-  text-align: left;
+#courseManagementButtons {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  width: 80%;
+}
+
+#courseManagementButtons button {
+  flex: 0 40%;
+  margin: 5px 2%;
 }

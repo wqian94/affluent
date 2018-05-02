@@ -163,7 +163,13 @@ const os = require('os');
     summary.className = 'render';
     summary.innerHTML = createModalCard(
       'Class summary',
-      '<div id="summaryDescription"></div><hr />');
+      '<div id="summaryDescription"></div><hr />' +
+      '<div id="courseManagementButtons">' +
+      '<button id="enrollInCourse">Enroll</button>' +
+      '<button id="deployNewSession">New session</button>' +
+      '<button id="addQuestions">Add questions</button>' +
+      '<button id="viewFeedback">View feedback</button></div>');
+
     view.appendChild(summary);
   };
 
