@@ -166,12 +166,19 @@ const os = require('os');
       '<div id="summaryDescription"></div><hr />' +
       '<div id="latestCourseSession"></div><hr />' +
       '<div id="courseManagementButtons">' +
+      '<button id="activateCourse">Activate course</button>' +
       '<button id="enrollInCourse">Enroll</button>' +
       '<button id="deployNewSession">New session</button>' +
       '<button id="addQuestions">Add questions</button>' +
       '<button id="viewFeedback">View feedback</button></div>');
 
     view.appendChild(summary);
+
+    get('activateCourse').addEventListener('click', async () => {
+      const addr = get('activateCourse').getAttribute("name");
+      const cls = contracts.Class.at(addr);  
+      await cls.activate({from: await cls.getInstructor.call(), gas:gas});
+    });
   };
 
   const setupMain = async () => {
@@ -532,9 +539,11 @@ const os = require('os');
       latestSessionMessage = '<button id="giveCourseFeedback">Give Feedback</button>';
     }
 
+
     get('summaryDescription').innerHTML =
       await classDescription(instances.Class);
     get('latestCourseSession').innerHTML = latestSessionMessage;
+    get('activateCourse').setAttribute('name', instance.address.toString());
   };
 
   // Toggles to the main view

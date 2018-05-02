@@ -149,6 +149,8 @@ contract Class {
     Session s = new Session(this);
     uint index = sessions.push(s) - 1;
     emit NewSession(s, index);
+
+    latestSession = s;
   }
 
   // Returns the number of questions available in the class.
