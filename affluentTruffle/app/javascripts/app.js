@@ -43,7 +43,9 @@ const os = require('os');
   var app;
   const gas = 4712388;  // Gas limit on transactions
   const instances = {};
+  var plotStreamController = null;
   const plotData = [];
+  window.plotData = plotData;
   const plotLayout = {
     title: null,
     showlegend: true,
@@ -54,6 +56,12 @@ const os = require('os');
       title: '% Yes Responses',
     },
   };
+  const plotStream = new ReadableStream({
+    start(controller) {
+      plotStreamController = controller;
+    }
+  });
+
   var role = null;  // Current role: student vs instructor
   const roleInstructor = 'instructor';  // enum hack
   const roleStudent = 'student';
@@ -66,8 +74,8 @@ const os = require('os');
   //////////////////////////////////////////////////////////////////////////////
 
   {
-    for (const id of [
-        'viewMain', 'viewClass', 'viewSummary', 'viewResponse']) {
+    for (const id of ['viewMain', 'viewClass', 'viewExplore', 'viewSummary',
+                      'viewResponse']) {
       const ele = document.createElement('view');
       ele.id = id;
       views.push(ele);
@@ -151,9 +159,9 @@ const os = require('os');
       name: text,
       line: {shape: 'spline'},
     };
-    for (const day in data) {
-      q.x.push(day);
-      q.y.push(data[day]);
+    for (const session in data) {
+      q.x.push(session);
+      q.y.push(data[session]);
     }
     return q;
   };
@@ -171,10 +179,6 @@ const os = require('os');
     return pretty;
   };
 
-  const replot = async () => {
-    Plotly.newPlot('viewSummary', plotData, plotLayout);
-  };
-
   const setup = async () => {
     // Bootstrap the contracts for Use.
     for (const key in contracts) {
@@ -189,6 +193,8 @@ const os = require('os');
     setupMain();
     setupClass();
     setupResponse();
+    setupSummary();
+    setupExplore();
 
     viewMain();
   };
@@ -210,6 +216,22 @@ const os = require('os');
     );
     view.appendChild(summary);
 
+    get('viewClassSummaryFeedback').addEventListener('click', async (event) => {
+      get('action').textContent = 'Return to class page';
+      const actionFunc = async (event) => {
+        await logoFunc();
+        viewClass();
+      };
+      const logoFunc = async (event) => {
+        get('action').style.display = 'none';
+        get('action').removeEventListener('click', actionFunc);
+        get('logo').removeEventListener('click', logoFunc);
+      };
+      get('action').addEventListener('click', actionFunc);
+      get('logo').addEventListener('click', logoFunc);
+      get('action').style.display = 'inline-block';
+      viewSummary();
+    });
     get('viewClassSummaryReturnToMain').addEventListener('click', viewMain);
 
     const admin = document.createElement('div');
@@ -327,7 +349,8 @@ const os = require('os');
             }
           }
           get('viewClassAdminAddInput').value = '';
-      });
+        }
+      );
       $(modal).on('shown.bs.modal', async (event) => {
         get('viewClassAdminAddInput').value = '';
         get('viewClassAdminAddInput').focus();
@@ -361,7 +384,8 @@ const os = require('os');
             }
           }
           get('viewClassAdminEnrollInput').value = '';
-      });
+        }
+      );
       $(modal).on('shown.bs.modal', async (event) => {
         get('viewClassAdminEnrollInput').value = '';
         get('viewClassAdminEnrollInput').focus();
@@ -503,6 +527,63 @@ const os = require('os');
     });
   };
 
+  const setupExplore = async () => {
+    const view = get('viewExplore');
+    const ele = document.createElement('div');
+    ele.className = 'render';
+    ele.innerHTML = createModalCard(
+      '<span id="viewExploreTitle">Explore previous classes</span>',
+      '<div id="viewExploreClasses"></div>'
+    );
+    view.appendChild(ele);
+
+    const returnButton = document.createElement('button');
+    returnButton.id = 'viewExploreReturn';
+    returnButton.textContent = 'Return to homepage';
+    get('viewExploreTitle').parentNode.parentNode.appendChild(returnButton);
+    get('viewExploreTitle').parentNode.innerHTML =
+      get('viewExploreTitle').innerHTML;
+
+    get('viewExploreReturn').addEventListener('click', viewMain);
+
+    const numClasses = (await instances.Affluent.numClasses.call()).toNumber();
+    for (var i = 0; i < numClasses; i++) {
+      const cls = await contracts.Class.at(
+        await instances.Affluent.getClass(i));
+      if (await cls.isActive.call()) {  // Skip active classes
+        continue;
+      }
+      const b = document.createElement('button');
+      b.id = 'viewExploreClassButton' + cls.address;
+      b.innerHTML = prettifyDescription(await classDescription(cls), 'h5');
+      b.addEventListener('click', async (event) => {
+        get('explore').textContent = 'Return to past offerings';
+        const logoFunc = async (event) => {
+          get('explore').textContent = 'Explore past offerings';
+          get('explore').removeEventListener('click', logoFunc);
+          get('logo').removeEventListener('click', logoFunc);
+        };
+        get('explore').addEventListener('click', logoFunc);
+        get('logo').addEventListener('click', logoFunc);
+
+        instances.Class = cls;
+        role = roleStudent;
+        plotLayout.title = 
+          `${await instances.Class.getLabel.call()}: ` +
+          `${await instances.Class.getTitle.call()}`;
+        get('viewSummaryPlot').innerHTML = 'Loading...';
+        // There should be no need to live update this graph because the class
+        // is supposedly inactive.
+        viewSummary();
+      });
+      get('viewExploreClasses').appendChild(b);
+    }
+
+    // Don't show explorer until all the panels have been loaded
+    get('explore').style.display = 'inline-block';
+    get('explore').addEventListener('click', viewExplore);
+  };
+
   const setupMain = async () => {
     const view = get('viewMain');
     for (const child of view.childNodes) {
@@ -570,7 +651,7 @@ const os = require('os');
   // Sets up admin panel in main view
   const setupMainAdmin = async (ele) => {
     ele.innerHTML = createModalCard(
-      'For administrators',
+      'System administration',
       '<button id="approveClassButton">Approve classes</button>'
     );
     setTimeout(function(){ele.className = 'render';}, 30);
@@ -634,7 +715,8 @@ const os = require('os');
         get('approveClassActionApprove').setAttribute('disabled', '');
         get('approveClassActionReject').setAttribute('disabled', '');
         $(modal).modal('hide');
-    });
+      }
+    );
     get('approveClassActionReject').addEventListener(
       'click', async (event) => {
         // TODO: remove class from consideration permanently unrevokably
@@ -642,7 +724,8 @@ const os = require('os');
         get('approveClassActionApprove').setAttribute('disabled', '');
         get('approveClassActionReject').setAttribute('disabled', '');
         $(modal).modal('hide');
-    });
+      }
+    );
     setTimeout(function(){ele.className = 'render';}, 30);
   };
 
@@ -650,7 +733,7 @@ const os = require('os');
   const setupMainInstructor = async (ele, taughtStream) => {
     // Set up panel
     ele.innerHTML = createModalCard(
-      'For instructors',
+      'Classes I teach',
       '<button id="createClassButton">Create a class</button>' +
       '<hr />' +
       '<h5>Active classes</h5>' +
@@ -759,6 +842,7 @@ const os = require('os');
         instances.Class = cls;
         account = await cls.getInstructor.call();
         role = roleInstructor;
+        get('viewSummaryPlot').innerHTML = 'Loading...';
         viewClass();
       });
       if (parent.childNodes.length) {
@@ -777,7 +861,7 @@ const os = require('os');
     const reader = enrolledStream.getReader();
     const setupMainStudentFunc = function() {
       ele.innerHTML = createModalCard(
-        'For students',
+        'Classes I attend',
         '<div id="enrolledClassesLoading">Loading...</div>' +
         '<div id="enrolledClasses"></div>'
       );
@@ -801,6 +885,7 @@ const os = require('os');
         instances.Class = cls;
         account = acct;
         role = roleStudent;
+        get('viewSummaryPlot').innerHTML = 'Loading...';
         viewClass();
       });
       if (get('enrolledClasses').childNodes.length) {
@@ -921,6 +1006,54 @@ const os = require('os');
     ele.addEventListener("touchstart", dragStart);
   };
 
+  // Sets up the summary view
+  const setupSummary = async () => {
+    const view = get('viewSummary');
+    const ele = document.createElement('div');
+    ele.className = 'centered render';
+    ele.id = 'viewSummaryPlot';
+    view.appendChild(ele);
+
+    const reader = plotStream.getReader();
+    const summaryUpdateFunc = async ({done, value}) => {
+      if (done) {
+        return;
+      }
+
+      const numQuestions =
+        (await instances.Class.numQuestions.call()).toNumber();
+      const numSessions = (await instances.Class.numSessions.call()).toNumber();
+      plotData.splice(0, plotData.length);
+      for (var qi = 0; qi < numQuestions; qi++) {
+        const data = {};
+        for (var si = 0; si < numSessions; si++) {
+          const nFalse =
+            (await instances.Class.getSummary.call(false, qi, si)).toNumber();
+          const nTrue =
+            (await instances.Class.getSummary.call(true, qi, si)).toNumber();
+          if (nFalse + nTrue) {
+            data[si + 1] = parseInt(10000 * (nTrue / (nFalse + nTrue))) / 100;
+          }
+        }
+        plotData.push(makePlotQuestion(
+          await instances.Class.getQuestionText.call(qi), data));
+      }
+      get('viewSummaryPlot').innerHTML = '';
+      summaryReplot();
+      reader.read().then(summaryUpdateFunc);
+    };
+    reader.read().then(summaryUpdateFunc);
+  };
+
+  // Updates the summary view plot data
+  const summaryUpdate = async () => {
+    plotStreamController.enqueue({});
+  };
+
+  const summaryReplot = async () => {
+    Plotly.newPlot('viewSummaryPlot', plotData, plotLayout);
+  };
+
   // Toggles all views off except the matched DOM object activeView
   const viewActivate = async (activeView) => {
     for (const ele of views) {
@@ -960,8 +1093,9 @@ const os = require('os');
 
       // Add session options
       {
-        for (const child of get('viewClassAdminSessions').childNodes) {
-          get('viewClassAdminSessions').removeChild(child);
+        while (get('viewClassAdminSessions').options.length) {
+          get('viewClassAdminSessions').removeChild(
+            get('viewClassAdminSessions').options[0]);
         }
         const numSessions = await instances.Class.numSessions.call();
         for (var i = 0; i < numSessions; i++) {
@@ -981,18 +1115,20 @@ const os = require('os');
         events.Class.NewSession.watch(async (err, result) => {
           if (!err) {
             const index = result.args.index.toNumber();
-            if (index >= get('viewClassAdminSessions').options.length) {
+            if (index == get('viewClassAdminSessions').length) {
               const option = document.createElement('option');
               option.value = index.toString();
               option.textContent = 'Session ' + (index + 1).toString();
-              if (index) {
-                get('viewClassAdminSessions').insertBefore(
-                  option, get('viewClassAdminSessions').childNodes[0]
-                );
-              } else {
-                get('viewClassAdminSessions').appendChild(option);
+              if (index >= get('viewClassAdminSessions').options.length) {
+                if (index) {
+                  get('viewClassAdminSessions').insertBefore(
+                    option, get('viewClassAdminSessions').childNodes[0]
+                  );
+                } else {
+                  get('viewClassAdminSessions').appendChild(option);
+                }
+                get('viewClassAdminSessions').selectedIndex = 0;
               }
-              get('viewClassAdminSessions').selectedIndex = 0;
             }
           }
         });
@@ -1008,8 +1144,21 @@ const os = require('os');
         }
       });
     }
+    plotLayout.title = 
+      `${await instances.Class.getLabel.call()}: ` +
+      `${await instances.Class.getTitle.call()}`;
+    instances.Class.SummaryUpdated().watch(async (error, result) => {
+      if (!error) {
+        summaryUpdate();
+      }
+    });
 
     viewActivate(view);
+  };
+
+  // Toggles to the explore view
+  const viewExplore = async () => {
+    viewActivate(get('viewExplore'));
   };
 
   // Toggles to the main view
@@ -1022,6 +1171,12 @@ const os = require('os');
     viewActivate(get('viewResponse'));
   };
 
+  // Toggles to the summary view
+  const viewSummary = async () => {
+    viewActivate(get('viewSummary'));
+    summaryUpdate();
+  };
+
   //////////////////////////////////////////////////////////////////////////////
   //
   // Public-scope functions
@@ -1029,7 +1184,7 @@ const os = require('os');
   //////////////////////////////////////////////////////////////////////////////
 
   window.App = {
-    replot: replot,
+    replot: summaryReplot,
     start: function() {
       app = this;  // Prevent external maliciousness by reassigning window.App
 
@@ -1048,265 +1203,6 @@ const os = require('os');
         accounts = accs;
         setup();
       });
-    },
-    addQuestion: async (text) => {
-      const instance = await Feedback.deployed();
-      const self = window.App;
-      instance.newQuestion(144, text, {from: account, gas: gas});
-    },
-    getResponses: async () => {
-      const instance = await Feedback.deployed();
-      const question_count = await instance.questionsCount();
-      const responses = [];
-      for (var i = 0; i < question_count; i++) {
-        responses.push([
-          await instance.getQuestion(i),
-          (await instance.viewFeedback(i, false)).toNumber(),
-          (await instance.viewFeedback(i, true)).toNumber(),
-        ]);
-      }
-      return responses;
-    },
-    ratioToPercent: function(ratio) {  // Converts a ratio to a percent
-      return parseInt(10000 * ratio) / 100;
-    },
-    populateSummary: async (self) => {
-      const responses = await self.getResponses();
-      var qnum = 0;
-      plotData.splice(0, plotData.length);
-      for (const r of responses) {
-        const data = {};
-        for (var i = 1; i < today; i++) {
-          data[i] = self.ratioToPercent(Math.abs(Math.sin(
-            1 + i * qnum * .1 + Math.sqrt(i + qnum))));
-        }
-        if (r[1] + r[2] > 0) {
-          console.log(r);
-          data[today] = self.ratioToPercent(r[2] / (r[1] + r[2]));
-        } else {
-          data[today] = 0.0;
-        }
-        plotData.push(makePlotQuestion(r[0], data));
-        qnum++;
-      }
-    },
-    launch: async (self) => {
-      self.launchSummary(self);
-      if (account == accounts[0]) {
-        self.launchInstructor(self);
-      } else {
-        self.launchStudent(self);
-      }
-    },
-    launchInstructor: async (self) => {
-      const instance = await Feedback.deployed();
-
-      get("action").textContent = "Add Questions";
-      get("action").style.display = "inline-block";
-      get("action").setAttribute("data-toggle", "modal");
-      get("action").setAttribute("data-target", "#addQuestionModal");
-
-      const modal = document.createElement("div");
-      modal.className = "modal";
-      modal.id = "addQuestionModal";
-      modal.setAttribute("role", "dialog");
-      modal.setAttribute("tabindex", "-1");
-      modal.innerHTML =
-        '<div class="modal-dialog" role="document">' +
-          '<div class="modal-content">' +
-            '<div class="modal-header">' +
-              '<h5 class="modal-title">Adding questions</h5>' +
-              '<button type="button" class="close" data-dismiss="modal"' +
-                '<span>&times;</span>' +
-              '</button>' +
-            '</div>' +
-            '<div class="modal-body">' +
-              '<div>Add any number of questions, separated by a newline</div>' +
-              '<div>' +
-                '<textarea id="addQuestionModalText" autofocus></textarea>' +
-              '</div>' +
-            '</div>' +
-            '<div class="modal-footer">' +
-              '<button class="btn btn-primary" data-dismiss="modal" ' +
-                  'id="addQuestionModalSubmit" type="button">' +
-                'Submit' +
-              '</button>' +
-            '</div>' +
-          '</div>' +
-        '</div>';
-      document.body.appendChild(modal);
-
-      $("#addQuestionModal").on("shown.bs.modal", async (event) => {
-        get("addQuestionModalText").focus();
-      });
-
-      get("addQuestionModalSubmit").addEventListener("click", async (event) => {
-        const questions = get("addQuestionModalText").value.split("\n");
-        get("addQuestionModalText").value = "";
-        for (const q of questions) {
-          if (q.length) {
-            self.addQuestion(q);
-          }
-        }
-      });
-
-      get("summaryView").style.display = "block";
-    },
-    launchStudent: async (self) => {
-      const instance = await Feedback.deployed();
-
-      const actionResponseString = "See Questions";
-      const actionSummaryString = "View Summary";
-      get("action").textContent = actionSummaryString;
-      get("action").style.display = "inline-block";
-
-      const ele = document.createElement("div");
-      ele.className = "centered";
-      ele.id = "responseCanvas";
-      ele.setAttribute("draggable", "true");
-      document.body.appendChild(ele);
-
-      const actionToResponse = async (event) => {  // Toggles the response view on
-        get("action").removeEventListener("click", actionToResponse);
-        get("summaryView").style.display = "none";
-        get("responseCanvas").style.display = "block";
-        get("action").textContent = actionSummaryString;
-        get("action").addEventListener("click", actionToSummary);
-      };
-      const actionToSummary = async (event) => {  // Toggles the summary view on
-        get("action").removeEventListener("click", actionToSummary);
-        get("responseCanvas").style.display = "none";
-        get("summaryView").style.display = "block";
-        self.replot();
-        get("action").textContent = actionResponseString;
-        get("action").addEventListener("click", actionToResponse);
-      };
-      get("action").addEventListener("click", actionToSummary);
-
-      const buffer = Math.max(50, 0.05 * window.innerWidth);
-      var originX = null;
-      var qnum = null;
-
-      const getDefined = function() {
-        for (const f of arguments) {
-          const ele = f();
-          if ('undefined' != typeof ele) {
-            return ele;
-          }
-        }
-        return null;
-      };
-
-      const getDir = function(x) {
-        const diff = x - originX;
-        const direction = Math.sign(diff);
-        return direction * Math.max(0, Math.abs(diff) - buffer);
-      };
-
-      const drag = function(event) {
-        console.log(event.screenX, window.innerWidth, originX);
-        const x = getDefined(
-          function() { return event.screenX; },
-          function() { return event.changedTouches[0].pageX; });
-        const direction = getDir(x);
-        if (0 == direction) {
-          ele.style.background = 'white';
-          return;
-        }
-        const offset = Math.max(0, Math.abs(x - originX) - buffer);
-        const ratio = Math.min(
-          1, offset / Math.max(200, 0.1 *  window.innerWidth));
-        const clr_neutral = `rgba(255, 255, 255, ${ratio})`;
-        const clr_true = `rgba(66, 218, 111, ${ratio})`;
-        const clr_false = `rgba(255, 105, 97, ${ratio})`;
-        if (direction < 0) {  // false
-          ele.style.background =
-            `linear-gradient(to right, ${clr_false}, ${clr_neutral})`;
-        } else {  // true
-          ele.style.background =
-            `linear-gradient(to left, ${clr_true}, ${clr_neutral})`;
-        }
-      };
-
-      const dragend = function(event) {
-        ele.style.background = 'white';
-        if (null == qnum) {
-          return;
-        }
-
-        const x = getDefined(
-          function() { return event.screenX; },
-          function() { return event.changedTouches[0].pageX; });
-        const direction = getDir(x);
-        if (0 == direction) {
-          return;
-        }
-
-        // Successfully registered response
-        const response = (0 < direction ? true : false);
-        instance.giveFeedback(response, qnum, {from: account, gas: gas});
-        show_question();
-        qnum = null;
-        originX = null;
-      };
-
-      const dragstart = function(event) {
-        const x = getDefined(
-          function() { return event.screenX; },
-          function() { return event.changedTouches[0].pageX; });
-        originX = x;
-        if (event.dataTransfer) {
-          event.dataTransfer.setDragImage(new Image(), 0, 0);
-        }
-      };
-
-      ele.addEventListener("drag", drag);
-      ele.addEventListener("dragend", dragend);
-      ele.addEventListener("dragstart", dragstart);
-      ele.addEventListener("touchcancel", function() {
-        originX = null;
-      });
-      ele.addEventListener("touchend", dragend);
-      ele.addEventListener("touchmove", drag);
-      ele.addEventListener("touchstart", dragstart);
-
-      function show_question() {
-        ele.textContent = "Waiting for more questions...";
-        async function pop() {
-          if ((await instance.hasNextQuestion({from: account}))) {
-            instance.popQuestion({from: account, gas: gas});
-          } else {
-            setTimeout(pop, 1000);
-          }
-        }
-        pop();
-
-        instance.Question().watch(async (error, result) => {
-          if (!error && account == result.args.target) {
-            ele.textContent = result.args.text;
-            qnum = result.args.qnum.toNumber();
-          }
-        });
-      }
-      show_question();
-    },
-    launchSummary: async (self) => {
-      const instance = await Feedback.deployed();
-      const ele = document.createElement("div");
-      ele.className = "centered";
-      ele.id = "summaryView";
-      document.body.appendChild(ele);
-      const draw = async () => {
-        self.populateSummary(self).then(() => {
-          self.replot(self);
-        });
-      };
-      instance.SummaryUpdated().watch(async (error, result) => {
-        if (!error) {
-          draw();
-        }
-      });
-      draw();
     },
   };
 

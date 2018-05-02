@@ -50,7 +50,8 @@ view > div.render {
   width: 100%;
 }
 
-#action {
+#action,
+#explore {
   -moz-box-shadow:inset 0px 0px 10px -1px rgba(255, 105, 97, 1);
   -webkit-box-shadow:inset 0px 0px 10px -1px rgba(255, 105, 97, 1);
   box-shadow:inset 0px 0px 10px -1px rgba(255, 105, 97, 1);
@@ -69,11 +70,14 @@ view > div.render {
   text-decoration:none;
 }
 
-#action:hover {
+#action:hover,
+#explore:hover {
   background-color:transparent;
   box-shadow:inset 0px 0px 10px 2px rgba(255, 105, 97, 1);
 }
-#action:active {
+
+#action:active,
+#explore:hover {
   position:relative;
   top:1px;
 }
@@ -88,7 +92,8 @@ view > div.render {
 
 #activeClasses > button,
 #enrolledClasses > button,
-#inactiveClasses > button {
+#inactiveClasses > button,
+#viewExploreClasses > button {
   box-sizing: border-box;
   margin-top: 5px;
   max-width: 100%;
@@ -117,7 +122,7 @@ view > div.render {
 }
 
 #responseCanvas,
-#summaryView {
+#viewSummaryPlot {
   background: transparent;
   box-sizing: border-box;
   font-size: 5vw;
@@ -131,12 +136,6 @@ view > div.render {
   vertical-align: middle;
   width: 100%;
   z-index: -1;
-}
-
-#summaryView {
-  display: none;
-  overflow-x: hidden;
-  overflow-y: scroll;
 }
 
 #viewClassAdmin {
@@ -183,12 +182,18 @@ view > div.render {
   padding-left: 2%;
 }
 
+#viewSummaryPlot {
+  overflow-x: hidden;
+  overflow-y: scroll;
+}
+
 .bold {
   font-weight: bold;
 }
 
 .centered {
   text-align: center;
+  white-space: nowrap;
 }
 
 .centered::after {

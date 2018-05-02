@@ -18,6 +18,7 @@ contract Class {
 
   event NewSession(Session session, uint index);
   event Question(address student, string text);
+  event SummaryUpdated();
 
   bool private active;  // Whether the class is currently active
   Affluent private affluent;  // Parent Affluent contract
@@ -167,5 +168,15 @@ contract Class {
     }
     require(valid);
     emit Question(target, questions[index].text);
+  }
+
+  // Emits a SummaryUpdated event
+  function updateSummary() public {
+    bool valid = (msg.sender == instructor);
+    for (uint i = 0; !valid && (i < sessions.length); i++) {
+      valid = (valid || (msg.sender == address(sessions[i])));
+    }
+    require(valid);
+    emit SummaryUpdated();
   }
 }

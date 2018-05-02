@@ -16,8 +16,6 @@ contract Session {
     mapping (bool => uint) responses;  // Tallies of the responses
   }
 
-  event SummaryUpdated();
-
   address[] private attendance;  // Keeps track of this Session's attendance
   Class private class;  // Parent class
   address private instructor;  // Cached value of the class's instructor
@@ -39,7 +37,7 @@ contract Session {
     uint qindex = questions.length++;
     questions[qindex].index = index;
 
-    emit SummaryUpdated();
+    class.updateSummary();
 
     // Notify students who've been waiting
     if (!locked) {
@@ -121,7 +119,7 @@ contract Session {
     uint index = progress[msg.sender]++;
     questions[index].responses[response]++;
 
-    emit SummaryUpdated();
+    class.updateSummary();
 
     // Emit next question if it's ready
     if (!locked && (progress[msg.sender] < questions.length)) {
