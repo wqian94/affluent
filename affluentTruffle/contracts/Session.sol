@@ -117,6 +117,7 @@ contract Session {
   function submitResponse(bool response) public {
     require(!locked);
     require(class.isEnrolled(msg.sender));
+    require(progress[msg.sender] < questions.length);
     uint index = progress[msg.sender]++;
     questions[index].responses[response]++;
 

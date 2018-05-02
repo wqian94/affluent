@@ -439,6 +439,14 @@ const os = require('os');
             option.textContent = await instances.Class.getQuestionText.call(i);
             get('viewClassAdminQuestionSelect').appendChild(option);
           }
+          get('viewClassAdminQuestionSelect').addEventListener(
+            'keypress', async (event) => {
+              if (('Enter' == event.key) ||
+                  ('13' == (event.which || event.keyCode))) {
+                get('viewClassAdminQuestionButton').click();
+              }
+            }
+          );
         }
 
         // Display currently-added questions
@@ -474,6 +482,22 @@ const os = require('os');
 
       instances.Session = await contracts.Session.at(
         await instances.Class.getSession(numSessions - 1));
+
+      get('action').textContent = 'Return to class page';
+      const actionFunc = async (event) => {
+        await logoFunc();
+        viewClass();
+      };
+      const logoFunc = async (event) => {
+        get('action').style.display = 'none';
+        get('action').removeEventListener('click', actionFunc);
+        get('logo').removeEventListener('click', logoFunc);
+      };
+      get('action').addEventListener('click', actionFunc);
+      get('logo').addEventListener('click', logoFunc);
+      get('action').style.display = 'inline-block';
+      get('responseCanvas').textContent = 'Awaiting more questions...';
+      instances.Session.attend({from: account, gas: gas});
 
       viewResponse();
     });
@@ -828,13 +852,11 @@ const os = require('os');
       return direction * Math.max(0, Math.abs(diff) - buffer);
     };
 
-    const drag = function(event) {
-      console.log(event.screenX, window.innerWidth, originX);
+    const drag = async (event) => {
       const x = getDefined(
         function() { return event.screenX; },
         function() { return event.changedTouches[0].pageX; });
       const direction = getDir(x);
-      console.log(direction);
       if (0 == direction) {
         ele.style.background = 'white';
         return;
@@ -854,7 +876,7 @@ const os = require('os');
       }
     };
 
-    const dragend = function(event) {
+    const dragEnd = async (event) => {
       ele.style.background = 'white';
 
       const x = getDefined(
@@ -866,12 +888,19 @@ const os = require('os');
       }
 
       // Successfully registered response
-      const response = (0 < direction ? true : false);
-      instances.Session.submitResponse(response, {from: account, gas: gas});
-      originX = null;
+      if (events.Class.Question.nextQuestionReady) {
+        const response = (0 < direction ? true : false);
+        get('responseCanvas').textContent = 'Awaiting more questions...';
+        events.Class.Question.nextQuestionReady = false;
+        try {
+          await instances.Session.submitResponse(
+            response, {from: account, gas: gas});
+        } catch (e) {}
+        originX = null;
+      }
     };
 
-    const dragstart = function(event) {
+    const dragStart = async (event) => {
       const x = getDefined(
         function() { return event.screenX; },
         function() { return event.changedTouches[0].pageX; });
@@ -882,23 +911,14 @@ const os = require('os');
     };
 
     ele.addEventListener("drag", drag);
-    ele.addEventListener("dragend", dragend);
-    ele.addEventListener("dragstart", dragstart);
-    ele.addEventListener("touchcancel", function() {
+    ele.addEventListener("dragend", dragEnd);
+    ele.addEventListener("dragstart", dragStart);
+    ele.addEventListener("touchcancel", async (event) => {
       originX = null;
     });
-    ele.addEventListener("touchend", dragend);
+    ele.addEventListener("touchend", dragEnd);
     ele.addEventListener("touchmove", drag);
-    ele.addEventListener("touchstart", dragstart);
-
-    /*
-    // TODO: hook up question watch
-    instances.Class.Question().watch(async (error, result) => {
-      if (!error && account == result.args.student) {
-          ele.textContent = result.args.text;
-      }
-    });
-    */
+    ele.addEventListener("touchstart", dragStart);
   };
 
   // Toggles all views off except the matched DOM object activeView
@@ -980,6 +1000,13 @@ const os = require('os');
     } else {
       get('viewClassAdmin').className = '';
       get('viewClassStudent').className = 'render';
+      events.Class.Question = instances.Class.Question();
+      events.Class.Question.watch(async (err, result) => {
+        if (!err && account == result.args.student) {
+          get('responseCanvas').textContent = result.args.text;
+          events.Class.Question.nextQuestionReady = true;
+        }
+      });
     }
 
     viewActivate(view);

@@ -51,6 +51,38 @@ view > div.render {
 }
 
 #action {
+  -moz-box-shadow:inset 0px 0px 10px -1px rgba(255, 105, 97, 1);
+  -webkit-box-shadow:inset 0px 0px 10px -1px rgba(255, 105, 97, 1);
+  box-shadow:inset 0px 0px 10px -1px rgba(255, 105, 97, 1);
+  background-color:transparent;
+  -moz-border-radius:6px;
+  -webkit-border-radius:6px;
+  border-radius:6px;
+  border:1px solid rgba(255, 105, 97, 0.5);
+  display: none;
+  cursor:pointer;
+  color:#ffffff;
+  font-family:Arial;
+  font-size:20px;
+  margin: 0px 5px;
+  padding:9px 15px;
+  text-decoration:none;
+}
+
+#action:hover {
+  background-color:transparent;
+  box-shadow:inset 0px 0px 10px 2px rgba(255, 105, 97, 1);
+}
+#action:active {
+  position:relative;
+  top:1px;
+}
+
+#activateInfo,
+#enrollmentInfo,
+#newSessionInfo,
+#addQuestionsInfo,
+#manageSessionInfo {
   display: none;
 }
 
@@ -66,9 +98,9 @@ view > div.render {
   width: 100%;
 }
 
-#addQuestionModalText {
-  height: 300px;
-  width: 100%;
+#approveClassInfo {
+  margin-top: 10px;
+  margin-left: 5%;
 }
 
 #createClassInstructor {
@@ -84,40 +116,9 @@ view > div.render {
   margin-left: 2%;
 }
 
-#existingUserAddress {
-  border: 0px;
-  border-bottom: 2px solid black;
-  width: 80%;
-}
-
-#loginModal .modal-body {
-  overflow-x: hidden;
-  text-align: center;
-}
-
-#loginModalExisting {
-  border-left: 1px solid black;
-}
-
-#loginModalNew {
-  border-right: 1px solid black;
-}
-
-#loginModalExisting,
-#loginModalNew {
-  box-sizing: border-box;
-  display: inline-block;
-  height: 200px;
-  width: 49%;
-}
-
-#loginModalExisting > div > *,
-#loginModalNew > div > * {
-  margin: 10px 0px;
-}
-
 #responseCanvas,
 #summaryView {
+  background: transparent;
   box-sizing: border-box;
   font-size: 5vw;
   height: 100vh;
@@ -136,23 +137,6 @@ view > div.render {
   display: none;
   overflow-x: hidden;
   overflow-y: scroll;
-}
-
-.infoText {
-  text-align: left;
-  margin-left: 5%;
-}
-
-#activateInfo,
-#enrollmentInfo,
-#newSessionInfo,
-#addQuestionsInfo,
-#manageSessionInfo {
-  display: none;
-}
-
-.courseAdminButton {
-  margin: 10px 0px 0px 2%;
 }
 
 #viewClassAdmin {
@@ -224,6 +208,10 @@ view > div.render {
   margin-bottom: 15px;
 }
 
+.courseAdminButton {
+  margin: 10px 0px 0px 2%;
+}
+
 .createLabel {
   flex: 0 30%;
   margin: 4px 10% 4px 5%;
@@ -242,44 +230,6 @@ view > div.render {
 .descriptionInfo {
   margin-left: 5%;
   margin-bottom: 10px;
-}
-
-.inputFormWrapper {
-  display: flex;
-  width: 95%;
-  flex-flow: row wrap;
-}
-
-#approveClassInfo {
-  margin-top: 10px;
-  margin-left: 5%;
-}
-
-.myButton {
-  -moz-box-shadow:inset 0px 0px 10px -1px rgba(255, 105, 97, 1);
-  -webkit-box-shadow:inset 0px 0px 10px -1px rgba(255, 105, 97, 1);
-  box-shadow:inset 0px 0px 10px -1px rgba(255, 105, 97, 1);
-  background-color:transparent;
-  -moz-border-radius:6px;
-  -webkit-border-radius:6px;
-  border-radius:6px;
-  border:1px solid rgba(255, 105, 97, 0.5);
-  display:inline-block;
-  cursor:pointer;
-  color:#ffffff;
-  font-family:Arial;
-  font-size:20px;
-  margin: 0px 5px;
-  padding:9px 15px;
-  text-decoration:none;
-}
-.myButton:hover {
-  background-color:transparent;
-  box-shadow:inset 0px 0px 10px 2px rgba(255, 105, 97, 1);
-}
-.myButton:active {
-  position:relative;
-  top:1px;
 }
 
 .infoButton {
@@ -312,4 +262,15 @@ view > div.render {
 .infoButton:active {
   position:relative;
   top:1px;
+}
+
+.infoText {
+  text-align: left;
+  margin-left: 5%;
+}
+
+.inputFormWrapper {
+  display: flex;
+  width: 95%;
+  flex-flow: row wrap;
 }
