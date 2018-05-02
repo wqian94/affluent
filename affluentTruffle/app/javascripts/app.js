@@ -237,6 +237,7 @@ const os = require('os');
       'Approve a new class',
       '<div>Class address: <input type="text" id="approveClassAdr" /></div>' +
       '<div id="approveClassInfo"></div>',
+      '<button id="validateClassInfo">Validate address</button>' +
       '<button id="approveClassActionApprove">Approve class</button>' +
       '<button id="approveClassActionReject">Reject class</button>'
     );
@@ -251,22 +252,30 @@ const os = require('os');
       get('approveClassInfo').innerHTML = '';
       get('approveClassActionApprove').setAttribute('disabled', '');
       get('approveClassActionReject').setAttribute('disabled', '');
+      get('approveClassActionApprove').removeAttribute('disabled');
     });
     const onClassAddressChange = async (event) => {
+      get('validateClassInfo').setAttribute('disabled', '');
+      get('approveClassInfo').innerHTML = 'Validating class address, please wait...';
       try{
         currentClass = await contracts.Class.at(event.target.value);
-        get('approveClassInfo').innerHTML =
-          await classDescription(currentClass);
+        var description =  await classDescription(currentClass); // TODO: validate description is valid
+        get('approveClassInfo').innerHTML = description;
         get('approveClassActionApprove').removeAttribute('disabled');
         get('approveClassActionReject').removeAttribute('disabled');
+        console.log('here');
+      
       } catch (e) {
         currentClass = null;
         get('approveClassInfo').innerHTML = '';
         get('approveClassActionApprove').setAttribute('disabled', '');
         get('approveClassActionReject').setAttribute('disabled', '');
+        get('approveClassActionApprove').removeAttribute('disabled');
       }
     };
     get('approveClassAdr').addEventListener('change', onClassAddressChange);
+    get('validateClassInfo').addEventListener('click', onClassAddressChange);
+
     $(modal).on("shown.bs.modal", async (event) => {
       get("approveClassAdr").focus();
     });
@@ -274,17 +283,22 @@ const os = require('os');
     get('approveClassActionApprove').addEventListener(
       'click', async (event) => {
         if (currentClass) {
+          console.log(currentClass.address);
           instances.Affluent.activate(
             currentClass.address,
             {from: await instances.Affluent.admin(), gas: gas});
         }
         get('approveClassAdr').value = '';
+        get('approveClassActionApprove').setAttribute('disabled', '');
+        get('approveClassActionReject').setAttribute('disabled', '');
         $(modal).modal('hide');
     });
     get('approveClassActionReject').addEventListener(
       'click', async (event) => {
         // TODO: remove class from consideration permanently unrevokably
         get('approveClassAdr').value = '';
+        get('approveClassActionApprove').setAttribute('disabled', '');
+        get('approveClassActionReject').setAttribute('disabled', '');
         $(modal).modal('hide');
     });
     setTimeout(function(){ele.className = 'render';}, 30);
@@ -420,6 +434,10 @@ const os = require('os');
       }
 
       const cls = value;
+      console.log("here");
+      console.log(value);
+      let test = await cls.isActive.call();
+      console.log(test);
       const parent = (await cls.isActive.call()) ?
         get('activeClasses') : get('inactiveClasses');
       const b = document.createElement('button');

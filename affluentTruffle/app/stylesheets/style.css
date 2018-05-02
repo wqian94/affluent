@@ -162,3 +162,7 @@ view > div.render {
   position:relative;
   top:1px;
 }
+
+#summaryDescription {
+  text-align: left;
+}
