@@ -103,6 +103,15 @@ view > div.render {
   width: 100%;
 }
 
+#viewClassAdminQuestionButton {
+  margin-top: 5px;
+  margin-left: 2%;
+}
+
+#viewExploreReturn {
+  margin-top: 5px;
+}
+
 #approveClassInfo {
   margin-top: 10px;
   margin-left: 5%;

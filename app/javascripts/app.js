@@ -939,7 +939,7 @@ const os = require('os');
 
     const drag = async (event) => {
       const x = getDefined(
-        function() { return event.screenX; },
+        function() { return event.pageX; },
         function() { return event.changedTouches[0].pageX; });
       const direction = getDir(x);
       if (0 == direction) {
@@ -965,7 +965,7 @@ const os = require('os');
       ele.style.background = 'white';
 
       const x = getDefined(
-        function() { return event.screenX; },
+        function() { return event.pageX; },
         function() { return event.changedTouches[0].pageX; });
       const direction = getDir(x);
       if (0 == direction) {
@@ -987,7 +987,7 @@ const os = require('os');
 
     const dragStart = async (event) => {
       const x = getDefined(
-        function() { return event.screenX; },
+        function() { return event.pageX; },
         function() { return event.changedTouches[0].pageX; });
       originX = x;
       if (event.dataTransfer) {
