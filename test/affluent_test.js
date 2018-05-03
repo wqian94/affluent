@@ -156,4 +156,71 @@ contract('Testing affluent application functions', (accounts) => {
         `Failed to drop ${accounts[drop]} from ${info.label}`);
     });
   });
+
+  var sessions_ctr = 0;
+  it("Create a feedback session for each course", async () => {
+    course_addrs.forEach(async (val, index) => {
+      let info = val.info;
+      let addr = val.addr;
+      let cls_instance = await contracts.Class.at(addr);
+
+      assert.equal(await cls_instance.numSessions.call(), 0, 
+        `${info.label}: course has an existing question`);
+
+      await cls_instance.newSession({from: info.instructor});
+      sessions_ctr++;
+
+      assert.equal(await cls_instance.numSessions.call(), 1, 
+        `${info.label}: failed to add new session to the course`);
+    });
+  });
+
+  it("Test the unlock and lock functionalities of the sessions", async () => {
+    course_addrs.forEach(async (val, index) => {
+      let info = val.info;
+      let addr = val.addr;
+      let cls_instance = await contracts.Class.at(addr);
+
+      let num_sessions = 0;
+      while (num_sessions < 1) 
+        num_sessions = await cls_instance.numSessions.call();
+
+      let sess_index = sessions_ctr - 1;
+      let sess_addr = await cls_instance.getSession.call(0);
+
+      let sess_instance = await contracts.Session.at(sess_addr);
+
+      assert.equal(await sess_instance.isLocked.call(), true,
+        `${info.label}: course session was already unlocked`);
+
+      await sess_instance.unlock({from: info.instructor});
+      assert.equal(await sess_instance.isLocked.call(), false,
+        `${info.label}: failed to unlock course session`);
+
+      await sess_instance.lock({from: info.instructor});
+      assert.equal(await sess_instance.isLocked.call(), true,
+        `${info.label}: failed to lock course session`);
+
+      await sess_instance.unlock({from: info.instructor});
+      assert.equal(await sess_instance.isLocked.call(), false,
+        `${info.label}: failed to unlock course session`);
+    }); 
+  });
+
+  var questions = ["Did you enjoy this lecture?", "Was the pace too fast?",
+    "Was it too slow?", "Did the readings help you understand the lecture?",
+    "Did you do the readings?", "Will you attend next lecture?"]
+  it(`Add ${questions.length} questions to each of the class contracts`, async () => {
+    course_addrs.forEach(async (val, index) => {
+      let info = val.info;
+      let addr = val.addr;
+      let cls_instance = await contracts.Class.at(addr);
+      questions.forEach(async (question) => {
+        await cls_instance.newQuestion(question, {from: info.instructor});
+
+      assert.equal(await cls_instance.numQuestions.call(), questions.length,
+        `${info.label}: failed to add all questions to the class contract`);
+      });
+    });
+  });
 });
