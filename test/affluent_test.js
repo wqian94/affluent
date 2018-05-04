@@ -223,4 +223,51 @@ contract('Testing affluent application functions', (accounts) => {
       });
     });
   });
+
+  it(`Enqueue these questions into the session contract of the class`, async () => {
+    course_addrs.forEach(async (val, index) => {
+      let info = val.info;
+      let addr = val.addr;
+      let cls_instance = await contracts.Class.at(addr);
+
+      let sess_index = sessions_ctr - 1;
+      let sess_addr = await cls_instance.getSession.call(0);
+
+      let sess_instance = await contracts.Session.at(sess_addr);
+
+      let num_questions = await cls_instance.numQuestions.call();
+      let num_ctr = num_questions.toNumber();
+
+      for (let i = 0; i < num_ctr; i++) {
+        await sess_instance.addQuestion(i, {from: info.instructor});        
+      }
+
+      let added_num = await sess_instance.numQuestions.call({from: info.instructor});
+      assert.equal(added_num.toNumber(), num_questions.toNumber(),
+        `${info.label}: failed to add every class question to the session`);
+    });
+  });
+
+  it(`Enrolled students give feedback and test questions are correct`, async () => {
+    course_addrs.forEach(async (val, index) => {
+      let info = val.info;
+      let addr = val.addr;
+      let cls_instance = await contracts.Class.at(addr);
+
+      let sess_num_big = await cls_instance.numSessions.call();
+      let sess_index = sess_num_big.toNumber() - 1;
+
+      let sess_addr = await cls_instance.getSession.call(sess_index);
+
+      let sess_instance = await contracts.Session.at(sess_addr);
+
+      let start = 3 + (5 * index);
+      let end = start + 4
+
+      // accounts[i] is an enrolled student in the course
+      for (let i = start; i < end; i++) {
+        
+      }
+    });
+  });
 });
