@@ -87,7 +87,7 @@ contract Class {
 
   // Get the question at the given index.
   function getQuestionText(uint index) public view returns (string) {
-    require(msg.sender == instructor || roster[msg.sender]);
+    require(!active || msg.sender == instructor || roster[msg.sender]);
     require(index < numQuestions());
     return questions[index].text;
   }
@@ -96,7 +96,7 @@ contract Class {
   function getSession(uint index) public view returns (Session) {
     // Only allow the instructor to access all sessions;
     // Only allow enrolled students to access the latest session
-    require(msg.sender == instructor ||
+    require(!active || msg.sender == instructor ||
             (roster[msg.sender] && (index == numSessions() - 1)));
     require(index < numSessions());
     return sessions[index];
@@ -107,7 +107,7 @@ contract Class {
   // question within the class, and sindex is the session index.
   function getSummary(bool option, uint qindex, uint sindex) public view returns
       (uint) {
-    require(msg.sender == instructor || roster[msg.sender]);
+    require(!active || msg.sender == instructor || roster[msg.sender]);
     require(sindex < numSessions());
     require(qindex < numQuestions());
     return sessions[sindex].getQuestionResponse(option, qindex);

@@ -408,7 +408,8 @@ const os = require('os');
         const session_index = parseInt(
           get('viewClassAdminSessions').value.trim());
         const session = await contracts.Session.at(
-          await instances.Class.getSession.call(session_index));
+          await instances.Class.getSession.call(
+            session_index, {from: account}));
         const modal = createModalEphemeral(
           'Class session administration',
           createModalCard(
@@ -452,7 +453,8 @@ const os = require('os');
               await session.addQuestion(index, {from: account, gas: gas});
               const li = document.createElement('li');
               li.textContent =
-                await instances.Class.getQuestionText.call(index);
+                await instances.Class.getQuestionText.call(
+                  index, {from: account});
               get('viewClassAdminQuestions').appendChild(li);
             }
           }
@@ -464,7 +466,8 @@ const os = require('os');
           for (var i = 0; i < numQuestions; i++) {
             const option = document.createElement('option');
             option.value = i;
-            option.textContent = await instances.Class.getQuestionText.call(i);
+            option.textContent = await instances.Class.getQuestionText.call(
+              i, {from: account});
             get('viewClassAdminQuestionSelect').appendChild(option);
           }
           get('viewClassAdminQuestionSelect').addEventListener(
@@ -484,7 +487,8 @@ const os = require('os');
           for (var i = 0; i < numQuestions; i++) {
             const li = document.createElement('li');
             li.textContent = await instances.Class.getQuestionText.call(
-              await session.getQuestionIndex.call(i,{from: account, gas: gas}));
+              await session.getQuestionIndex.call(i,{from: account, gas: gas}),
+              {from: account});
             get('viewClassAdminQuestions').appendChild(li);
           }
         }
@@ -509,7 +513,7 @@ const os = require('os');
       }
 
       instances.Session = await contracts.Session.at(
-        await instances.Class.getSession(numSessions - 1));
+        await instances.Class.getSession(numSessions - 1, {from: account}));
 
       get('action').textContent = 'Return to class page';
       const actionFunc = async (event) => {
@@ -1033,15 +1037,18 @@ const os = require('os');
         const data = {};
         for (var si = 0; si < numSessions; si++) {
           const nFalse =
-            (await instances.Class.getSummary.call(false, qi, si)).toNumber();
+            (await instances.Class.getSummary.call(
+              false, qi, si, {from: account})).toNumber();
           const nTrue =
-            (await instances.Class.getSummary.call(true, qi, si)).toNumber();
+            (await instances.Class.getSummary.call(
+              true, qi, si, {from: account})).toNumber();
           if (nFalse + nTrue) {
             data[si + 1] = parseInt(10000 * (nTrue / (nFalse + nTrue))) / 100;
           }
         }
         plotData.push(makePlotQuestion(
-          await instances.Class.getQuestionText.call(qi), data));
+          await instances.Class.getQuestionText.call(
+            qi, {from: account}), data));
       }
       get('viewSummaryPlot').innerHTML = '';
       summaryReplot();
@@ -1214,7 +1221,7 @@ const os = require('os');
 
   window.addEventListener('load', async (event) => {
     // Checking if Web3 has been injected by the browser (Mist/MetaMask)
-    if (typeof web3 !== 'undefined') {
+    if (false && typeof web3 !== 'undefined') {
       //console.warn("Using web3 detected from external source. If you find that your accounts don't appear or you have 0 Affluent, ensure you've configured that source properly. If using MetaMask, see the following link. Feel free to delete this warning. :) http://truffleframework.com/tutorials/truffle-and-metamask")
       // Use Mist/MetaMask's provider
       window.web3 = new Web3(web3.currentProvider);

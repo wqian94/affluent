@@ -59,6 +59,9 @@ contract Session {
     require(class.isEnrolled(msg.sender));
     for (uint i = 0; i < attendance.length; i++) {
       if (msg.sender == attendance[i]) {
+        if (progress[msg.sender] < questions.length) {
+          class.popQuestion(msg.sender, questions[progress[msg.sender]].index);
+        }
         return;
       }
     }
