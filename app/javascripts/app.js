@@ -89,10 +89,14 @@ const os = require('os');
   //////////////////////////////////////////////////////////////////////////////
 
   // Generates a text description of the class
-  const classDescription = async (cls) => {
+  const classDescription = async (cls, showInstructor=false) => {
     return `${await cls.getLabel.call()}: ` +
       `${await cls.getTitle.call()}<br />` +
-      `Instructor: ${await cls.getInstructor.call()}<br />` +
+      (
+        showInstructor ?
+        `Instructor: ${await cls.getInstructor.call()}<br />` :
+        ''
+      ) +
       `Term: ${await cls.getTerm()}`;
   };
 
@@ -684,7 +688,7 @@ const os = require('os');
         'Validating class address, please wait...';
       try{
         currentClass = await contracts.Class.at(event.target.value.trim());
-        let description = await classDescription(currentClass);
+        let description = await classDescription(currentClass, true);
         let description_html = prettifyDescription(description);
         get('approveClassInfo').innerHTML = description_html;
         get('approveClassActionApprove').removeAttribute('disabled');
@@ -837,7 +841,8 @@ const os = require('os');
         get('activeClasses') : get('inactiveClasses');
       const b = document.createElement('button');
       b.id = 'viewMainClassButton' + cls.address;
-      b.innerHTML = prettifyDescription(await classDescription(cls), 'h5');
+      b.innerHTML = prettifyDescription(
+        await classDescription(cls, true), 'h5');
       b.addEventListener('click', async (event) => {
         instances.Class = cls;
         account = await cls.getInstructor.call();
@@ -1093,7 +1098,8 @@ const os = require('os');
       delete events.Class[key];
     }
 
-    const description = await classDescription(instances.Class);
+    const description = await classDescription(
+      instances.Class, roleInstructor == role);
     const active = await instances.Class.isActive.call();
     get('viewClassSummaryDescription').innerHTML =
       `${prettifyDescription(description)}<br />` +
