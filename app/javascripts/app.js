@@ -45,7 +45,6 @@ const os = require('os');
   const instances = {};
   var plotStreamController = null;
   const plotData = [];
-  window.plotData = plotData;
   const plotLayout = {
     title: null,
     showlegend: true,
@@ -65,6 +64,7 @@ const os = require('os');
   var role = null;  // Current role: student vs instructor
   const roleInstructor = 'instructor';  // enum hack
   const roleStudent = 'student';
+  var setupStart = null;  // Performance measuring
   const views = [];
 
   //////////////////////////////////////////////////////////////////////////////
@@ -194,6 +194,9 @@ const os = require('os');
     for (const ele of views) {
       document.body.appendChild(ele);
     }
+
+    setupStart = performance.now();
+
     setupMain();
     setupClass();
     setupResponse();
@@ -837,6 +840,8 @@ const os = require('os');
           get('inactiveClassesLoading').parentNode.removeChild(
             get('inactiveClassesLoading'));
         }
+        const now = performance.now();
+        console.log('Instructor panel render time:', now - setupStart, 'ms');
         return;
       }
 
@@ -882,6 +887,8 @@ const os = require('os');
           get('enrolledClassesLoading').parentNode.removeChild(
             get('enrolledClassesLoading'));
         }
+        const now = performance.now();
+        console.log('Student panel render time:', now - setupStart, 'ms');
         return;
       }
 
@@ -1221,7 +1228,7 @@ const os = require('os');
 
   window.addEventListener('load', async (event) => {
     // Checking if Web3 has been injected by the browser (Mist/MetaMask)
-    if (false && typeof web3 !== 'undefined') {
+    if (typeof web3 !== 'undefined') {
       //console.warn("Using web3 detected from external source. If you find that your accounts don't appear or you have 0 Affluent, ensure you've configured that source properly. If using MetaMask, see the following link. Feel free to delete this warning. :) http://truffleframework.com/tutorials/truffle-and-metamask")
       // Use Mist/MetaMask's provider
       window.web3 = new Web3(web3.currentProvider);
