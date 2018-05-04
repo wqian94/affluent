@@ -265,16 +265,20 @@ contract('Testing affluent application functions', (accounts) => {
       let end = start + 4
 
       let indices = {}
-      contracts.Class.Question().watch(async (err, result) => {
-        if (!err && result.student == accounts[i]) {
-          assert(question list[index] == result.text);
-          index++;
+      cls_instance.Question().watch(async (err, result) => {
+        if (!err) {
+          assert(questions[indices[result.args.student]] == result.args.text);
+          indices[result.args.student]++;
+          sess_instance.submitResponse(indices[result.args.student] % 2, {from: result.args.student});
         }
       });
 
-
       // accounts[i] is an enrolled student in the course
       for (let i = start; i < end; i++) {
+        let student = accounts[i];
+        indices[student] = 0;
+        sess_instance.attend({from: student});
+/*
         let questions_check = [...questions]; 
 
         let num_questions_big = await sess_instance.numQuestions.call({from: info.instructor});
@@ -288,8 +292,8 @@ contract('Testing affluent application functions', (accounts) => {
             `${info.label}: ${accounts[i]} got a question text that was not in the added list`); 
 
           questions_check = questions_check.splice(test_index, 1);
-*/
         }
+*/
 
         //assert.equal(questions_check, [], 
         //  `${info.label}: ${accounts[i]} did not observe all added questions`); 
