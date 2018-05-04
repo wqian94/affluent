@@ -264,9 +264,35 @@ contract('Testing affluent application functions', (accounts) => {
       let start = 3 + (5 * index);
       let end = start + 4
 
+      let indices = {}
+      contracts.Class.Question().watch(async (err, result) => {
+        if (!err && result.student == accounts[i]) {
+          assert(question list[index] == result.text);
+          index++;
+        }
+      });
+
+
       // accounts[i] is an enrolled student in the course
       for (let i = start; i < end; i++) {
-        
+        let questions_check = [...questions]; 
+
+        let num_questions_big = await sess_instance.numQuestions.call({from: info.instructor});
+        let num_questions = num_questions_big.toNumber();
+        for (let j = 0; j < num_questions; j++) {
+          let qindex = await sess_instance.getQuestionIndex.call(j, {from: info.instructor});
+          //let text = await cls_instance.getQuestionText.call(qindex.toNumber());
+/*
+          let test_index = questions_check.indexOf(text);
+          assert.isAtLeast(test_index, 0, 
+            `${info.label}: ${accounts[i]} got a question text that was not in the added list`); 
+
+          questions_check = questions_check.splice(test_index, 1);
+*/
+        }
+
+        //assert.equal(questions_check, [], 
+        //  `${info.label}: ${accounts[i]} did not observe all added questions`); 
       }
     });
   });
