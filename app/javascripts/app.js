@@ -1045,6 +1045,25 @@ const os = require('os');
     reader.read().then(summaryUpdateFunc);
   };
 
+  // Start function for the dapp
+  const start = async () => {
+    // Get the initial account balance so it can be displayed.
+    web3.eth.getAccounts(async (err, accs) => {
+      if (err != null) {
+        alert('There was an error fetching your accounts.');
+        return;
+      }
+
+      if (accs.length == 0) {
+        alert('Couldn\'t get any accounts! Make sure your Ethereum client is configured correctly.');
+        return;
+      }
+
+      accounts = accs;
+      setup();
+    });
+  };
+
   // Updates the summary view plot data
   const summaryUpdate = async () => {
     plotStreamController.enqueue({});
@@ -1185,28 +1204,9 @@ const os = require('os');
 
   window.App = {
     replot: summaryReplot,
-    start: function() {
-      app = this;  // Prevent external maliciousness by reassigning window.App
-
-      // Get the initial account balance so it can be displayed.
-      web3.eth.getAccounts(async (err, accs) => {
-        if (err != null) {
-          alert('There was an error fetching your accounts.');
-          return;
-        }
-
-        if (accs.length == 0) {
-          alert('Couldn\'t get any accounts! Make sure your Ethereum client is configured correctly.');
-          return;
-        }
-
-        accounts = accs;
-        setup();
-      });
-    },
   };
 
-  window.addEventListener('load', function() {
+  window.addEventListener('load', async (event) => {
     // Checking if Web3 has been injected by the browser (Mist/MetaMask)
     if (typeof web3 !== 'undefined') {
       //console.warn("Using web3 detected from external source. If you find that your accounts don't appear or you have 0 Affluent, ensure you've configured that source properly. If using MetaMask, see the following link. Feel free to delete this warning. :) http://truffleframework.com/tutorials/truffle-and-metamask")
@@ -1220,6 +1220,6 @@ const os = require('os');
         "http://" + location.hostname + ":8545"));
     }
 
-    App.start();
+    start();
   });
 }
